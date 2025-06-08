@@ -12,7 +12,7 @@
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
     <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('build/assets/app-DVuR1H4_.css') }}">
 </head>
 <body class="font-sans antialiased">
     <div class="min-h-screen bg-gray-100">
@@ -32,5 +32,6 @@
             {{ $slot }}
         </main>
     </div>
+    <script src="{{ asset('build/assets/app-Bf4POITK.js') }}"></script>
 </body>
 </html> 

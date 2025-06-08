@@ -1,9 +1,8 @@
 @extends('layouts.dashboard')
-
 @section('header')
-    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+    <div class="">
         <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-            <h2 class="text-2xl font-bold text-gray-900">Visão Geral Financeira</h2>
+            <h2 class="text-2xl font-bold text-gray-900 ml-8 mr-8">Visão Geral Financeira</h2>
             <form method="GET" action="{{ route('dashboard') }}" class="flex flex-wrap gap-3">
                 <div class="flex items-center space-x-2">
                     <select name="month" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-700">

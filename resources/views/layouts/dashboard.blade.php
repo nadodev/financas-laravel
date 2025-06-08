@@ -13,7 +13,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite('resources/css/app.css', 'resources/js/app.js')
+
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="font-sans antialiased">
@@ -87,7 +88,7 @@
         </div>
 
         <!-- Main Content -->
-        <div class="pl-64">
+        <div class="pl-[17rem]">
             <!-- Top Navigation -->
             <div class="bg-white shadow-sm">
                 <div class="flex justify-between items-center px-4 py-4 sm:px-6 lg:px-8">
@@ -134,7 +135,7 @@
     </div>
 
     @stack('scripts')
-
+    <script src="{{ asset('build/assets/app-Bf4POITK.js') }}"></script>
     <script>
         // Toggle Sidebar
         document.getElementById('sidebarToggle').addEventListener('click', function() {
