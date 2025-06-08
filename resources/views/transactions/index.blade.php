@@ -144,14 +144,10 @@
                                         {{ $transaction->action_button_text }}
                                     </button>
                                 @endif
-                                {{-- <a href="{{ route('transactions.edit', $transaction) }}" class="text-gray-600 hover:text-gray-900" x-data="{ showEditModal: true }">
+                               <a href="{{ route('transactions.edit', $transaction) }}" class="text-gray-600 hover:text-gray-900" x-data="{ showEditModal: true }">
                                     Editar
-                                </a> --}}
-                                <button type="button" 
-                                    @click="showEditModal = true"
-                                    class="text-gray-600 hover:text-gray-900">
-                                    Editar
-                                </button>
+                                </a> 
+                            
                                 <form action="{{ route('transactions.destroy', $transaction) }}" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir esta transação?');">
                                     @csrf
                                     @method('DELETE')
@@ -209,7 +205,6 @@
     </div>
 </div>
 
-@include('transactions._edit_modal', compact('categories', 'accounts'))
 @endsection
 
 @push('scripts')
@@ -224,14 +219,7 @@ function closePaymentModal() {
     document.getElementById('paymentModal').classList.add('hidden');
 }
 
-function openEditModal(transactionId) {
-    document.getElementById('editModal').classList.remove('hidden');
-    document.getElementById('editForm').action = `/transactions/${transactionId}`;
-}
 
-function closeEditModal() {
-    document.getElementById('editModal').classList.add('hidden');
-}
 
 </script>
 @endpush 
