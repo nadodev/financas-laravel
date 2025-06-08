@@ -22,6 +22,15 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'cpf',
+        'phone',
+        'address',
+        'address_number',
+        'complement',
+        'neighborhood',
+        'city',
+        'state',
+        'zip_code',
         'role',
         'plan_id'
     ];
@@ -103,6 +112,16 @@ class User extends Authenticatable
     public function isAdvancedPlan()
     {
         return $this->plan && $this->plan->slug === 'advanced';
+    }
+
+    public function dashboardPreference()
+    {
+        return $this->hasOne(DashboardPreference::class);
+    }
+
+    public function dashboardSetting()
+    {
+        return $this->hasOne(DashboardSetting::class);
     }
 
     protected static function boot()

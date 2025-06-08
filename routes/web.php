@@ -15,6 +15,7 @@ use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\DashboardSettingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingPageController::class, 'index'])->name('home');
@@ -74,16 +75,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('financial-goals/{financialGoal}/progress', [FinancialGoalController::class, 'updateProgress'])
         ->name('financial-goals.update-progress');
 
-    // Profile
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // Plans & Subscriptions
+        // Plans & Subscriptions
     Route::get('/plans', [PlanController::class, 'index'])->name('plans.index');
     Route::post('/subscription', [SubscriptionController::class, 'create'])->name('subscription.create');
     Route::put('/subscription', [SubscriptionController::class, 'update'])->name('subscription.update');
     Route::delete('/subscription', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+
+    // Dashboard Settings
+    Route::get('/settings/dashboard', [DashboardSettingController::class, 'edit'])
+        ->name('settings.dashboard');
+    Route::put('/settings/dashboard', [DashboardSettingController::class, 'update'])
+        ->name('settings.dashboard.update');
+        
+});
+
+// Profile
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';

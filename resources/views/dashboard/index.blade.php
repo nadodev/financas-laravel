@@ -34,8 +34,15 @@
 @endsection
 
 @section('content')
+    @php
+        $settings = auth()->user()->dashboardSetting;
+        $visibleSections = $settings ? $settings->visible_sections : [];
+        $showAll = !$settings || empty($visibleSections);
+    @endphp
+
     <div class="space-y-6">
         <!-- Performance Metrics -->
+        @if($showAll || in_array('performance_metrics', $visibleSections))
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Taxa de Economia -->
             <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
@@ -164,8 +171,10 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Summary Cards -->
+        @if($showAll || in_array('summary_cards', $visibleSections))
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Saldo Total -->
             <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
@@ -283,10 +292,12 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Financial Goals and Budgets -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Active Financial Goals -->
+            @if($showAll || in_array('financial_goals', $visibleSections))
             <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-2">
@@ -352,8 +363,10 @@
                     @endforelse
                 </div>
             </div>
+            @endif
 
             <!-- Current Month Budgets -->
+            @if($showAll || in_array('budgets', $visibleSections))
             <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-2">
@@ -426,11 +439,13 @@
                     @endforelse
                 </div>
             </div>
+            @endif
         </div>
 
         <!-- Charts Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Despesas por Categoria -->
+            @if($showAll || in_array('expenses_by_category', $visibleSections))
             <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-2">
@@ -457,8 +472,10 @@
                     @endif
                 </div>
             </div>
+            @endif
 
             <!-- Fluxo de Caixa -->
+            @if($showAll || in_array('cash_flow', $visibleSections))
             <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center space-x-2">
@@ -475,9 +492,11 @@
                     <canvas id="cashFlow"></canvas>
                 </div>
             </div>
+            @endif
         </div>
 
         <!-- Recent Transactions -->
+        @if($showAll || in_array('recent_transactions', $visibleSections))
         <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-6">
@@ -546,6 +565,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

@@ -6,8 +6,7 @@
     <title>FinanceApp - Gestão Financeira Inteligente</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
-    <link rel="stylesheet" href="{{ asset('build/assets/app-DVuR1H4_.css') }}">
-   
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
         .gradient-text {
@@ -311,7 +310,6 @@
 
     <!-- AOS Animations -->
     <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-    <script src="{{ asset('build/assets/app-Bf4POITK.js') }}"></script>
     <script>
         AOS.init({
             duration: 1000,
