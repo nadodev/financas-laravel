@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transaction;
+use App\Models\FinancialGoal;
+use App\Models\Budget;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -106,7 +108,49 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        \Log::info('Despesas por categoria:', ['data' => $expensesByCategory->toArray()]);
+        // Objetivos financeiros em andamento
+        $activeGoals = FinancialGoal::where('user_id', auth()->id())
+            ->where('status', 'in_progress')
+            ->orderBy('target_date', 'asc')
+            ->take(3)
+            ->get();
+
+        // Objetivos financeiros próximos do vencimento (próximos 30 dias)
+        $upcomingGoals = FinancialGoal::where('user_id', auth()->id())
+            ->where('status', 'in_progress')
+            ->where('target_date', '<=', now()->addDays(30))
+            ->orderBy('target_date', 'asc')
+            ->get();
+
+        // Orçamentos do mês atual
+        $budgets = Budget::where('user_id', auth()->id())
+            ->where(function($query) use ($startOfMonth) {
+                $query->where('end_date', '>=', $startOfMonth)
+                    ->orWhereNull('end_date');
+            })
+            ->with(['category'])
+            ->get();
+
+        // Calcular o progresso dos orçamentos
+        foreach ($budgets as $budget) {
+            $spent = Transaction::where('user_id', auth()->id())
+                ->where('type', 'expense')
+                ->where('category_id', $budget->category_id)
+                ->whereBetween('date', [$startOfMonth, $endOfMonth])
+                ->sum('amount');
+
+            $budget->spent = $spent;
+            $budget->remaining = max(0, $budget->amount - $spent);
+            $budget->percentage = $budget->amount > 0 ? min(100, ($spent / $budget->amount) * 100) : 0;
+        }
+
+        // Métricas de desempenho
+        $performance = [
+            'savings_rate' => $monthlyIncome > 0 ? ($monthlySavings / $monthlyIncome) * 100 : 0,
+            'expense_income_ratio' => $monthlyIncome > 0 ? ($monthlyExpenses / $monthlyIncome) * 100 : 0,
+            'budget_adherence' => $this->calculateBudgetAdherence($budgets),
+            'goals_progress' => $this->calculateGoalsProgress($activeGoals),
+        ];
 
         return view('dashboard.index', compact(
             'totalBalance',
@@ -119,7 +163,34 @@ class DashboardController extends Controller
             'months',
             'years',
             'selectedMonth',
-            'selectedYear'
+            'selectedYear',
+            'activeGoals',
+            'upcomingGoals',
+            'budgets',
+            'performance'
         ));
+    }
+
+    private function calculateBudgetAdherence($budgets)
+    {
+        if ($budgets->isEmpty()) {
+            return 0;
+        }
+
+        $adherentBudgets = $budgets->filter(function ($budget) {
+            return $budget->percentage <= 100;
+        })->count();
+
+        return ($adherentBudgets / $budgets->count()) * 100;
+    }
+
+    private function calculateGoalsProgress($goals)
+    {
+        if ($goals->isEmpty()) {
+            return 0;
+        }
+
+        $totalProgress = $goals->sum('progress_percentage');
+        return $totalProgress / $goals->count();
     }
 } 

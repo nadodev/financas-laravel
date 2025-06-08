@@ -14,6 +14,8 @@ use App\Models\FinancialGoal;
 use App\Policies\FinancialGoalPolicy;
 use App\Models\Transaction;
 use App\Policies\TransactionPolicy;
+use App\Models\Budget;
+use App\Policies\BudgetPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -23,11 +25,10 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        Category::class => CategoryPolicy::class,
-        Account::class => AccountPolicy::class,
-        CreditCard::class => CreditCardPolicy::class,
-        FinancialGoal::class => FinancialGoalPolicy::class,
         Transaction::class => TransactionPolicy::class,
+        Category::class => CategoryPolicy::class,
+        FinancialGoal::class => FinancialGoalPolicy::class,
+        Budget::class => BudgetPolicy::class,
     ];
 
     /**

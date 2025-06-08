@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -13,22 +12,24 @@ class FinancialGoal extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
+        'account_id',
         'name',
         'description',
         'target_amount',
-        'current_amount',
-        'target_date',
         'start_date',
+        'target_date',
+        'current_amount',
         'status',
-        'user_id',
-        'account_id',
+        'monthly_amount',
     ];
 
     protected $casts = [
-        'target_amount' => 'decimal:2',
-        'current_amount' => 'decimal:2',
         'target_date' => 'date',
         'start_date' => 'date',
+        'target_amount' => 'decimal:2',
+        'current_amount' => 'decimal:2',
+        'monthly_amount' => 'decimal:2',
     ];
 
     protected $appends = [
@@ -39,7 +40,7 @@ class FinancialGoal extends Model
     ];
 
     public static $statuses = [
-        'in_progress' => 'Em andamento',
+        'in_progress' => 'Em Andamento',
         'completed' => 'Concluído',
         'cancelled' => 'Cancelado',
     ];
@@ -59,12 +60,14 @@ class FinancialGoal extends Model
         return $this->hasMany(FinancialGoalProgress::class)->orderBy('date', 'desc');
     }
 
-    public function getProgressPercentageAttribute(): float
+    public function getProgressPercentageAttribute(): int
     {
         if ($this->target_amount <= 0) {
             return 0;
         }
-        return min(100, round(($this->current_amount / $this->target_amount) * 100, 2));
+
+        $percentage = ($this->current_amount / $this->target_amount) * 100;
+        return min(round($percentage), 100);
     }
 
     public function getRemainingAmountAttribute(): float
@@ -74,17 +77,21 @@ class FinancialGoal extends Model
 
     public function getDaysRemainingAttribute(): int
     {
-        return max(0, $this->target_date->diffInDays(Carbon::now()));
+        if ($this->status !== 'in_progress') {
+            return 0;
+        }
+
+        return now()->diffInDays($this->target_date, false);
     }
 
     public function getMonthlyRequiredAmountAttribute(): float
     {
-        if ($this->days_remaining <= 0) {
+        if ($this->status !== 'in_progress') {
             return 0;
         }
-        
-        $months_remaining = ceil($this->days_remaining / 30);
-        return $this->remaining_amount / $months_remaining;
+
+        $monthsRemaining = max(1, now()->diffInMonths($this->target_date, false));
+        return round($this->remaining_amount / $monthsRemaining, 2);
     }
 
     public function calculateTimeToReachGoal($monthly_amount)
@@ -98,7 +105,7 @@ class FinancialGoal extends Model
         
         return [
             'months' => $months,
-            'estimated_date' => Carbon::now()->addMonths($months)->format('d/m/Y')
+            'estimated_date' => now()->addMonths($months)->format('d/m/Y')
         ];
     }
 

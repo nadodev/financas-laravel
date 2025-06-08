@@ -13,47 +13,58 @@ class Budget extends Model
     use HasFactory;
 
     protected $fillable = [
-        'category_id',
         'user_id',
+        'category_id',
         'amount',
-        'month',
-        'year',
-        'notes'
+        'start_date',
+        'end_date',
+        'recurrence',
+        'description'
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'amount' => 'decimal:2'
     ];
-
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
     public function getSpentAttribute()
     {
-        return Transaction::where('category_id', $this->category_id)
-            ->whereYear('date', $this->year)
-            ->whereMonth('date', $this->month)
-            ->where('type', 'expense')
-            ->sum('amount');
+        $query = Transaction::where('user_id', $this->user_id)
+            ->where('category_id', $this->category_id)
+            ->where('type', 'expense');
+
+        if ($this->start_date) {
+            $query->where('date', '>=', $this->start_date);
+        }
+
+        if ($this->end_date) {
+            $query->where('date', '<=', $this->end_date);
+        }
+
+        return $query->sum('amount');
     }
 
     public function getRemainingAttribute()
     {
-        return $this->amount - $this->spent;
+        return max(0, $this->amount - $this->spent);
     }
 
-    public function getProgressPercentageAttribute()
+    public function getPercentageAttribute()
     {
         if ($this->amount <= 0) {
-            return 100;
+            return 0;
         }
-        return min(100, round(($this->spent / $this->amount) * 100));
+        return ($this->spent / $this->amount) * 100;
     }
 } 

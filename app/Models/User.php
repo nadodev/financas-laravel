@@ -6,11 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Traits\HasPlanLimits;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasPlanLimits;
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'plan_id'
     ];
 
     /**
@@ -38,13 +41,10 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 
     public function accounts()
     {
@@ -54,5 +54,65 @@ class User extends Authenticatable
     public function financialGoals()
     {
         return $this->hasMany(FinancialGoal::class);
+    }
+
+    public function plan()
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    public function hasFeature($feature)
+    {
+        if ($this->role === 'admin') {
+            return true;
+        }
+        
+        return $this->plan && in_array($feature, $this->plan->features);
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isUser()
+    {
+        return $this->role === 'user';
+    }
+
+    public function checkAccountLimit()
+    {
+        return $this->accounts()->count() < $this->plan->account_limit;
+    }
+
+    public function isBasicPlan()
+    {
+        return $this->plan && $this->plan->slug === 'basic';
+    }
+
+    public function isEssentialPlan()
+    {
+        return $this->plan && $this->plan->slug === 'essential';
+    }
+
+    public function isFlexiblePlan()
+    {
+        return $this->plan && $this->plan->slug === 'flexible';
+    }
+
+    public function isAdvancedPlan()
+    {
+        return $this->plan && $this->plan->slug === 'advanced';
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($user) {
+            if ($user->role !== 'admin' && !$user->plan_id) {
+                $user->plan_id = Plan::getBasicPlan()->id;
+            }
+        });
     }
 }

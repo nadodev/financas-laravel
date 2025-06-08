@@ -32,6 +32,7 @@ class AccountPolicy
 
     public function delete(User $user, Account $account)
     {
+        // Verifica apenas se a conta pertence ao usuário
         return $user->id === $account->user_id;
     }
 } 

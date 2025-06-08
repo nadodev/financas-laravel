@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
@@ -24,35 +25,40 @@ class Transaction extends Model
         'installments',
         'current_installment',
         'total_installments',
+        'recurrence_interval',
+        'recurrence_end_date',
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'datetime',
         'amount' => 'decimal:2',
         'is_recurring' => 'boolean',
+        'recurrence_end_date' => 'datetime',
     ];
 
-    public function category()
+    protected $with = ['category', 'account'];
+
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function account()
+    public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
     }
 
-    public function creditCard()
+    public function creditCard(): BelongsTo
     {
         return $this->belongsTo(CreditCard::class);
     }
 
-    public function creditCardInvoice()
+    public function creditCardInvoice(): BelongsTo
     {
         return $this->belongsTo(CreditCardInvoice::class);
     }

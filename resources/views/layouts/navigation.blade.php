@@ -11,25 +11,49 @@
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('transactions.index')" :active="request()->routeIs('transactions.*')">
-                        {{ __('Transações') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.*')">
-                        {{ __('Categorias') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('accounts.index')" :active="request()->routeIs('accounts.*')">
-                        {{ __('Contas') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('credit-cards.index')" :active="request()->routeIs('credit-cards.*')">
-                        {{ __('Cartões de Crédito') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
-                        {{ __('Relatórios') }}
-                    </x-nav-link>
+                <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                    @if(auth()->user()->isAdmin())
+                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                            {{ __('Dashboard Admin') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                            {{ __('Usuários') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.plans.index')" :active="request()->routeIs('admin.plans.*')">
+                            {{ __('Planos') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.transactions.index')" :active="request()->routeIs('admin.transactions.*')">
+                            {{ __('Transações') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('admin.statistics')" :active="request()->routeIs('admin.statistics')">
+                            {{ __('Estatísticas') }}
+                        </x-nav-link>
+                    @else
+                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                            {{ __('Dashboard') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('transactions.index')" :active="request()->routeIs('transactions.*')">
+                            {{ __('Transações') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.*')">
+                            {{ __('Categorias') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('accounts.index')" :active="request()->routeIs('accounts.*')">
+                            {{ __('Contas') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('credit-cards.index')" :active="request()->routeIs('credit-cards.*')">
+                            {{ __('Cartões de Crédito') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
+                            {{ __('Relatórios') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('financial-goals.index')" :active="request()->routeIs('financial-goals.*')">
+                            {{ __('Objetivos') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('budgets.index')" :active="request()->routeIs('budgets.*')">
+                            {{ __('Orçamentos') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -82,9 +106,48 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
+            @if(auth()->user()->isAdmin())
+                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                    {{ __('Dashboard Admin') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                    {{ __('Usuários') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.plans.index')" :active="request()->routeIs('admin.plans.*')">
+                    {{ __('Planos') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.transactions.index')" :active="request()->routeIs('admin.transactions.*')">
+                    {{ __('Transações') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.statistics')" :active="request()->routeIs('admin.statistics')">
+                    {{ __('Estatísticas') }}
+                </x-responsive-nav-link>
+            @else
+                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    {{ __('Dashboard') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('transactions.index')" :active="request()->routeIs('transactions.*')">
+                    {{ __('Transações') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('categories.index')" :active="request()->routeIs('categories.*')">
+                    {{ __('Categorias') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('accounts.index')" :active="request()->routeIs('accounts.*')">
+                    {{ __('Contas') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('credit-cards.index')" :active="request()->routeIs('credit-cards.*')">
+                    {{ __('Cartões de Crédito') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
+                    {{ __('Relatórios') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('financial-goals.index')" :active="request()->routeIs('financial-goals.*')">
+                    {{ __('Objetivos') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('budgets.index')" :active="request()->routeIs('budgets.*')">
+                    {{ __('Orçamentos') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

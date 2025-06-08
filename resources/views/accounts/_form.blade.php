@@ -38,13 +38,13 @@
 
     <!-- Banco -->
     <div>
-        <label for="bank" class="block text-sm font-medium text-gray-700">Banco</label>
+        <label for="bank_name" class="block text-sm font-medium text-gray-700">Banco</label>
         <input type="text" 
-            name="bank" 
-            id="bank" 
-            value="{{ old('bank', $account->bank ?? '') }}"
+            name="bank_name" 
+            id="bank_name" 
+            value="{{ old('bank_name', $account->bank_name ?? '') }}"
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-        @error('bank')
+        @error('bank_name')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>
@@ -77,23 +77,22 @@
 
     <!-- Saldo Inicial -->
     <div>
-        <label for="initial_balance" class="block text-sm font-medium text-gray-700">Saldo Inicial</label>
+        <label for="balance" class="block text-sm font-medium text-gray-700">Saldo Inicial</label>
         <div class="mt-1 relative rounded-md shadow-sm">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <span class="text-gray-500 sm:text-sm">R$</span>
             </div>
             <input type="number" 
-                name="initial_balance" 
-                id="initial_balance" 
+                name="balance" 
+                id="balance" 
                 step="0.01"
-                value="{{ old('initial_balance', isset($account) ? null : '0.00') }}"
-                {{ isset($account) ? 'disabled' : '' }}
+                value="{{ old('balance',$account->balance ?? '0.00') }}"
                 class="pl-8 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
         </div>
         @if(!isset($account))
             <p class="mt-1 text-xs text-gray-500">O saldo inicial só pode ser definido na criação da conta.</p>
         @endif
-        @error('initial_balance')
+        @error('balance')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>

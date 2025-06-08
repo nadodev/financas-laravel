@@ -16,13 +16,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call([
+            PlanSeeder::class,
+            AdminSeeder::class,
+        ]);
 
-        // Create a default user
+        // Depois criamos o usuário padrão
         $user = User::create([
             'name' => 'Usuário Teste',
             'email' => 'teste@example.com',
             'password' => Hash::make('password'),
+            'role' => 'user',
+            'plan_id' => 1,
         ]);
 
         // Create default categories

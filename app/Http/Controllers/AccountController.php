@@ -3,51 +3,39 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
+use App\Services\AccountService;
 use Illuminate\Http\Request;
 
 class AccountController extends Controller
 {
+    protected $accountService;
+
+    public function __construct(AccountService $accountService)
+    {
+        $this->accountService = $accountService;
+    }
+
     public function index(Request $request)
     {
-        $query = Account::where('user_id', auth()->id());
+        $filters = $request->only(['type', 'bank', 'balance']);
+        
+        $data = $this->accountService->getAccountsWithStats(
+            auth()->id(),
+            $filters
+        );
 
-        // Filtro por tipo
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-
-        // Filtro por banco
-        if ($request->filled('bank')) {
-            $query->where('bank', 'like', '%' . $request->bank . '%');
-        }
-
-        // Filtro por saldo
-        if ($request->filled('balance')) {
-            if ($request->balance === 'positive') {
-                $query->where('balance', '>=', 0);
-            } else if ($request->balance === 'negative') {
-                $query->where('balance', '<', 0);
-            }
-        }
-
-        $accounts = $query->orderBy('name')->paginate(10);
-
-        // Calcular totais para o resumo
-        $totalBalance = $accounts->sum('balance');
-        $totalAccounts = $accounts->count();
-        $negativeAccounts = $accounts->where('balance', '<', 0)->count();
-
-        return view('accounts.index', compact(
-            'accounts',
-            'totalBalance',
-            'totalAccounts',
-            'negativeAccounts'
-        ));
+        return view('accounts.index', $data);
     }
 
     public function create()
     {
-        $types = Account::$types;
+        // Verifica se o usuário pode criar mais contas
+        if (!auth()->user()->checkAccountLimit()) {
+            return redirect()->route('plans.index')
+                ->with('error', 'Você atingiu o limite de contas para seu plano atual. Faça um upgrade para adicionar mais contas.');
+        }
+
+        $types = $this->accountService->getAccountTypes();
         return view('accounts.create', compact('types'));
     }
 
@@ -56,21 +44,22 @@ class AccountController extends Controller
         $validated = $request->validate([
             'name' => 'required|max:255',
             'type' => 'required|in:' . implode(',', array_keys(Account::$types)),
-            'initial_balance' => 'required|numeric|min:0',
-            'bank' => 'nullable|max:255',
+            'balance' => 'required|numeric|min:0',
+            'bank_name' => 'nullable|max:255',
             'agency' => 'nullable|max:255',
             'account_number' => 'nullable|max:255',
             'notes' => 'nullable|max:1000',
         ]);
 
-        $validated['user_id'] = auth()->id();
-        $validated['balance'] = $validated['initial_balance'];
-        unset($validated['initial_balance']);
-
-        Account::create($validated);
-
-        return redirect()->route('accounts.index')
-            ->with('success', 'Conta criada com sucesso!');
+        try {
+            $this->accountService->createAccount($validated, auth()->id());
+            return redirect()->route('accounts.index')
+                ->with('success', 'Conta criada com sucesso!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Erro ao criar conta: ' . $e->getMessage());
+        }
     }
 
     public function show(Account $account)
@@ -89,7 +78,7 @@ class AccountController extends Controller
     public function edit(Account $account)
     {
         $this->authorize('update', $account);
-        $types = Account::$types;
+        $types = $this->accountService->getAccountTypes();
         return view('accounts.edit', compact('account', 'types'));
     }
 
@@ -100,31 +89,35 @@ class AccountController extends Controller
         $validated = $request->validate([
             'name' => 'required|max:255',
             'type' => 'required|in:' . implode(',', array_keys(Account::$types)),
-            'bank' => 'nullable|max:255',
+            'bank_name' => 'nullable|max:255',
             'agency' => 'nullable|max:255',
             'account_number' => 'nullable|max:255',
             'notes' => 'nullable|max:1000',
+            'balance' => 'required|numeric|min:0',
         ]);
 
-        $account->update($validated);
-
-        return redirect()->route('accounts.index')
-            ->with('success', 'Conta atualizada com sucesso!');
+        try {
+            $this->accountService->updateAccount($account, $validated);
+            return redirect()->route('accounts.index')
+                ->with('success', 'Conta atualizada com sucesso!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Erro ao atualizar conta: ' . $e->getMessage());
+        }
     }
 
     public function destroy(Account $account)
     {
         $this->authorize('delete', $account);
 
-        // Verificar se existem transações vinculadas
-        if ($account->transactions()->exists()) {
+        try {
+            $this->accountService->deleteAccount($account);
             return redirect()->route('accounts.index')
-                ->with('error', 'Não é possível excluir uma conta que possui transações vinculadas.');
+                ->with('success', 'Conta excluída com sucesso!');
+        } catch (\Exception $e) {
+            return redirect()->route('accounts.index')
+                ->with('error', $e->getMessage());
         }
-
-        $account->delete();
-
-        return redirect()->route('accounts.index')
-            ->with('success', 'Conta excluída com sucesso!');
     }
 } 
