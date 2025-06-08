@@ -141,7 +141,7 @@
                             </div>
                         </div>
                     </div>
-                @endif
+            @endif
                 <div class="flex justify-between items-center mb-6">
                   
                     <div class="flex items-center space-x-4 bg-white w-full rounded-lg p-4 justify-between shadow-sm">
@@ -165,25 +165,25 @@
                             </span>
                             <span class="text-gray-400">(Limite do plano: {{ $limit }})</span>
                         </p>
-                       
+                     
                     </div>
                 </div>
 
                 <div class="flex flex-col lg:flex-row gap-6">
                     <!-- Left side: Accounts List -->
                     <div class="lg:w-2/3">
-                        @if($accounts->isEmpty())
-                            <div class="text-center py-8">
-                                <p class="text-gray-500 text-lg">Você ainda não tem nenhuma conta cadastrada.</p>
+                @if($accounts->isEmpty())
+                    <div class="text-center py-8">
+                        <p class="text-gray-500 text-lg">Você ainda não tem nenhuma conta cadastrada.</p>
                                 <button 
                                     @click="showModal = true"
                                     class="text-blue-500 hover:text-blue-700 mt-2 inline-block disabled:opacity-50 disabled:cursor-not-allowed"
                                     {{ !auth()->user()->checkAccountLimit() ? 'disabled' : '' }}
                                 >
-                                    Clique aqui para criar sua primeira conta
+                            Clique aqui para criar sua primeira conta
                                 </button>
-                            </div>
-                        @else
+                    </div>
+                @else
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 @foreach($accounts as $account)
                                     <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow duration-200">
@@ -191,8 +191,8 @@
                                             <div>
                                                 <h3 class="text-lg font-semibold text-gray-900">
                                                     <a href="{{ route('accounts.show', $account) }}" class="hover:text-blue-600">
-                                                        {{ $account->name }}
-                                                    </a>
+                                                {{ $account->name }}
+                                            </a>
                                                 </h3>
                                                 <p class="text-sm text-gray-600">{{ $account->type_name }}</p>
                                             </div>
@@ -204,9 +204,9 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                                     </svg>
                                                 </a>
-                                                <form action="{{ route('accounts.destroy', $account) }}" method="POST" class="inline">
-                                                    @csrf
-                                                    @method('DELETE')
+                                            <form action="{{ route('accounts.destroy', $account) }}" method="POST" class="inline">
+                                                @csrf
+                                                @method('DELETE')
                                                     <button type="submit" 
                                                             class="text-gray-400 hover:text-red-600"
                                                             title="Excluir"
@@ -214,8 +214,8 @@
                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                                         </svg>
-                                                    </button>
-                                                </form>
+                                                </button>
+                                            </form>
                                             </div>
                                         </div>
                                         

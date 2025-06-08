@@ -13,11 +13,12 @@ use App\Models\Category;
 use App\Models\CreditCard;
 use App\Models\FinancialGoal;
 use App\Models\Transaction;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasPlanLimits, HasApiTokens;
+    use HasFactory, Notifiable, HasPlanLimits, HasApiTokens, HasPushSubscriptions;
 
     /**
      * The attributes that are mass assignable.

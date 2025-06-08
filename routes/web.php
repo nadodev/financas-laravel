@@ -17,6 +17,8 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\DashboardSettingController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\ExpenseAnalyticsController;
+use App\Http\Controllers\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingPageController::class, 'index'])->name('home');
@@ -29,8 +31,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Transactions
     Route::resource('transactions', TransactionController::class);
     Route::post('/transactions/{transaction}/pay', [TransactionController::class, 'pay'])->name('transactions.pay');
-    Route::post('/transactions/check-overdue', [TransactionController::class, 'checkOverdueTransactions'])
-        ->name('transactions.check-overdue');
+    Route::post('/transactions/check-overdue', [TransactionController::class, 'checkOverdue'])->name('transactions.check-overdue');
+    Route::delete('/transactions/{transaction}/attachments/{index}', [TransactionController::class, 'removeAttachment'])->name('transactions.remove-attachment');
 
     Route::resource('categories', CategoryController::class);
 
@@ -74,7 +76,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('financial-goals/{financialGoal}/progress', [FinancialGoalController::class, 'updateProgress'])
         ->name('financial-goals.update-progress');
 
-        // Plans & Subscriptions
+    // Plans & Subscriptions
     Route::get('/plans', [PlanController::class, 'index'])->name('plans.index');
     Route::post('/subscription', [SubscriptionController::class, 'create'])->name('subscription.create');
     Route::put('/subscription', [SubscriptionController::class, 'update'])->name('subscription.update');
@@ -89,6 +91,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Calendar
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
     Route::get('/calendar/events', [CalendarController::class, 'events'])->name('calendar.events');
+
+    // Rotas para análise de gastos
+    Route::prefix('analytics')->name('analytics.')->group(function () {
+        Route::get('/expenses', [ExpenseAnalyticsController::class, 'index'])->name('expenses.index');
+        Route::get('/expenses/data', [ExpenseAnalyticsController::class, 'getExpenseData'])->name('expenses.data');
+        Route::get('/expenses/trend', [ExpenseAnalyticsController::class, 'getExpenseTrend'])->name('expenses.trend');
+        Route::get('/expenses/metrics', [ExpenseAnalyticsController::class, 'getExpenseMetrics'])->name('expenses.metrics');
+    });
+
+    // Push Notification Routes
+    Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+    Route::delete('push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
 });
 
 // Profile

@@ -1,251 +1,205 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-2xl mx-auto">
-            <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-                <h1 class="text-2xl font-bold text-gray-800 mb-6">
-                    {{ isset($transaction) ? 'Editar Transação' : 'Nova Transação' }}
-                </h1>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white shadow rounded-lg p-6">
+            <h1 class="text-2xl font-semibold text-gray-900 mb-6">
+                {{ isset($transaction) ? 'Editar Transação' : 'Nova Transação' }}
+            </h1>
 
-                @if ($errors->has('general'))
-                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                        <span class="block sm:inline">{{ $errors->first('general') }}</span>
-                    </div>
+            <form action="{{ isset($transaction) ? route('transactions.update', $transaction) : route('transactions.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                @if(isset($transaction))
+                    @method('PUT')
                 @endif
 
-                @php
-                    $isEdit = isset($transaction);
-                    $route = $isEdit ? route('transactions.update', $transaction) : route('transactions.store');
-                    $method = $isEdit ? 'PUT' : 'POST';
-                @endphp
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Descrição</label>
+                        <input type="text" name="description" id="description" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ old('description', $transaction->description ?? '') }}" required>
+                        @error('description')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6 bg-white border-b border-gray-200">
-                            <form action="{{ $route }}" method="POST" class="space-y-6">
-                                @csrf
-                                @if($isEdit)
-                                    @method('PUT')
-                                @endif
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700">Valor</label>
+                        <input type="number" step="0.01" name="amount" id="amount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ old('amount', $transaction->amount ?? '') }}" required>
+                        @error('amount')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <!-- Descrição -->
-                                    <div>
-                                        <label for="description" class="block text-sm font-medium text-gray-700">Descrição</label>
-                                        <input type="text" name="description" id="description" 
-                                            value="{{ old('description', $isEdit ? $transaction->description : '') }}"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                            required>
-                                        @error('description')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
+                        <input type="date" name="date" id="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ old('date', isset($transaction) ? $transaction->date->format('Y-m-d') : '') }}" required>
+                        @error('date')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                                    <!-- Valor -->
-                                    <div>
-                                        <label for="amount" class="block text-sm font-medium text-gray-700">Valor</label>
-                                        <div class="mt-1 relative rounded-md shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <span class="text-gray-500 sm:text-sm">R$</span>
-                                            </div>
-                                            <input type="number" step="0.01" name="amount" id="amount" 
-                                                min="0"
-                                                value="{{ old('amount', $isEdit ? $transaction->amount : '') }}"
-                                                class="pl-8 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                                required>
-                                        </div>
-                                        @error('amount')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
+                        <select name="type" id="type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            <option value="income" {{ old('type', $transaction->type ?? '') == 'income' ? 'selected' : '' }}>Receita</option>
+                            <option value="expense" {{ old('type', $transaction->type ?? '') == 'expense' ? 'selected' : '' }}>Despesa</option>
+                        </select>
+                        @error('type')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                                    <!-- Data -->
-                                    <div>
-                                        <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
-                                        <input type="date" name="date" id="date" 
-                                            value="{{ old('date', $isEdit ? $transaction->date->format('Y-m-d') : date('Y-m-d')) }}"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                            required>
-                                        @error('date')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
+                    <div>
+                        <label for="category_id" class="block text-sm font-medium text-gray-700">Categoria</label>
+                        <select name="category_id" id="category_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ old('category_id', $transaction->category_id ?? '') == $category->id ? 'selected' : '' }}>
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('category_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                                    <!-- Tipo -->
-                                    <div>
-                                        <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
-                                        <select name="type" id="type" 
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                            required>
-                                            <option value="">Selecione um tipo</option>
-                                            <option value="income" {{ old('type', $isEdit ? $transaction->type : '') === 'income' ? 'selected' : '' }}>Receita</option>
-                                            <option value="expense" {{ old('type', $isEdit ? $transaction->type : '') === 'expense' ? 'selected' : '' }}>Despesa</option>
-                                        </select>
-                                        @error('type')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
+                    <div>
+                        <label for="account_id" class="block text-sm font-medium text-gray-700">Conta</label>
+                        <select name="account_id" id="account_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            @foreach($accounts as $account)
+                                <option value="{{ $account->id }}" {{ old('account_id', $transaction->account_id ?? '') == $account->id ? 'selected' : '' }}>
+                                    {{ $account->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('account_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                                    <!-- Categoria -->
-                                    <div>
-                                        <label for="category_id" class="block text-sm font-medium text-gray-700">Categoria</label>
-                                        <select name="category_id" id="category_id" 
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                            required>
-                                            <option value="">Selecione uma categoria</option>
-                                            @foreach($categories as $category)
-                                                <option value="{{ $category->id }}" 
-                                                    {{ old('category_id', $isEdit ? $transaction->category_id : '') == $category->id ? 'selected' : '' }}>
-                                                    {{ $category->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('category_id')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                        <select name="status" id="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            <option value="pending" {{ old('status', $transaction->status ?? '') == 'pending' ? 'selected' : '' }}>Pendente</option>
+                            <option value="paid" {{ old('status', $transaction->status ?? '') == 'paid' ? 'selected' : '' }}>Pago</option>
+                            <option value="cancelled" {{ old('status', $transaction->status ?? '') == 'cancelled' ? 'selected' : '' }}>Cancelado</option>
+                        </select>
+                        @error('status')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                                    <!-- Método de Pagamento -->
-                                    <div>
-                                        <label for="payment_method" class="block text-sm font-medium text-gray-700">Método de Pagamento</label>
-                                        <select name="payment_method" id="payment_method" 
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                            onchange="togglePaymentMethod()"
-                                            required>
-                                            <option value="">Selecione um método</option>
-                                            <option value="account" {{ old('payment_method', $isEdit && $transaction->account_id ? 'account' : '') === 'account' ? 'selected' : '' }}>Conta Bancária</option>
-                                            <option value="credit_card" {{ old('payment_method', $isEdit && $transaction->credit_card_id ? 'credit_card' : '') === 'credit_card' ? 'selected' : '' }}>Cartão de Crédito</option>
-                                        </select>
-                                        @error('payment_method')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-
-                                    <!-- Conta -->
-                                    <div id="account_section" class="{{ old('payment_method', $isEdit && $transaction->account_id ? 'account' : '') === 'account' ? '' : 'hidden' }}">
-                                        <label for="account_id" class="block text-sm font-medium text-gray-700">Conta</label>
-                                        <select name="account_id" id="account_id" 
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                            <option value="">Selecione uma conta</option>
-                                            @foreach($accounts as $account)
-                                                <option value="{{ $account->id }}" 
-                                                    {{ old('account_id', $isEdit ? $transaction->account_id : '') == $account->id ? 'selected' : '' }}>
-                                                    {{ $account->name }} (Saldo: R$ {{ number_format($account->balance, 2, ',', '.') }})
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('account_id')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-
-                                    <!-- Cartão de Crédito -->
-                                    <div id="credit_card_section" class="{{ old('payment_method', $isEdit && $transaction->credit_card_id ? 'credit_card' : '') === 'credit_card' ? '' : 'hidden' }}">
-                                        <label for="credit_card_id" class="block text-sm font-medium text-gray-700">Cartão de Crédito</label>
-                                        <select name="credit_card_id" id="credit_card_id" 
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                            <option value="">Selecione um cartão</option>
-                                            @foreach($creditCards as $card)
-                                                <option value="{{ $card->id }}" 
-                                                    {{ old('credit_card_id', $isEdit ? $transaction->credit_card_id : '') == $card->id ? 'selected' : '' }}>
-                                                    {{ $card->name }} (Limite: R$ {{ number_format($card->limit, 2, ',', '.') }})
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('credit_card_id')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-
-                                    <!-- Observações -->
-                                    <div class="col-span-2">
-                                        <label for="notes" class="block text-sm font-medium text-gray-700">Observações</label>
-                                        <textarea name="notes" id="notes" rows="3" 
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{{ old('notes', $isEdit ? $transaction->notes : '') }}</textarea>
-                                        @error('notes')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-
-                                    <!-- Recorrente -->
-                                    <div class="col-span-2">
-                                        <div class="flex items-center">
-                                            <input type="checkbox" name="is_recurring" id="is_recurring" 
-                                                value="1"
-                                                {{ old('is_recurring', $isEdit && $transaction->is_recurring ? '1' : '') ? 'checked' : '' }}
-                                                onchange="toggleInstallments()"
-                                                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                                            <label for="is_recurring" class="ml-2 block text-sm text-gray-900">
-                                                Transação Recorrente
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <!-- Parcelas -->
-                                    <div id="installments_section" class="{{ old('is_recurring', $isEdit && $transaction->is_recurring ? '1' : '') ? '' : 'hidden' }} col-span-2">
-                                        <label for="installments" class="block text-sm font-medium text-gray-700">Número de Parcelas</label>
-                                        <input type="number" name="installments" id="installments" min="2" max="24"
-                                            value="{{ old('installments', $isEdit ? $transaction->total_installments : '') }}"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                        @error('installments')
-                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                        @enderror
-                                    </div>
-                                </div>
-
-                                <div class="flex justify-end space-x-4">
-                                    <a href="{{ route('transactions.index') }}" 
-                                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                                        Cancelar
+                    <div class="col-span-2">
+                        <label for="attachment" class="block text-sm font-medium text-gray-700">Anexo</label>
+                        <div class="mt-1 flex items-center">
+                            <input type="file" name="attachment" id="attachment" 
+                                class="block w-full text-sm text-gray-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-md file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-indigo-50 file:text-indigo-700
+                                    hover:file:bg-indigo-100">
+                            @if(isset($transaction) && $transaction->attachment)
+                                <div class="ml-4 flex items-center">
+                                    <a href="{{ Storage::url($transaction->attachment) }}" target="_blank" 
+                                        class="text-indigo-600 hover:text-indigo-900 flex items-center">
+                                        <svg class="h-5 w-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13">
+                                            </path>
+                                        </svg>
+                                        Ver anexo atual
                                     </a>
-                                    <button type="submit" 
-                                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                        {{ $isEdit ? 'Atualizar' : 'Criar' }} Transação
+                                    <button type="button" onclick="document.getElementById('remove_attachment').value = '1'"
+                                        class="ml-2 text-red-600 hover:text-red-900">
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                            </path>
+                                        </svg>
                                     </button>
                                 </div>
-                            </form>
+                                <input type="hidden" name="remove_attachment" id="remove_attachment" value="0">
+                            @endif
+                        </div>
+                        @error('attachment')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" name="recurring" id="recurring" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" 
+                                    {{ old('recurring', $transaction->recurring ?? false) ? 'checked' : '' }}
+                                    {{ isset($transaction) && !$transaction->is_recurring_parent ? 'disabled' : '' }}>
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="recurring" class="font-medium text-gray-700">Transação Recorrente</label>
+                                <p class="text-gray-500">Marque esta opção se esta transação se repete regularmente</p>
+                            </div>
                         </div>
                     </div>
+
+                    <div id="recurrence_fields" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6" style="display: none;">
+                        <div>
+                            <label for="recurrence_interval" class="block text-sm font-medium text-gray-700">Intervalo de Recorrência (em dias)</label>
+                            <input type="number" name="recurrence_interval" id="recurrence_interval" 
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
+                                value="{{ old('recurrence_interval', $transaction->recurrence_interval ?? 30) }}" 
+                                min="1"
+                                {{ isset($transaction) && !$transaction->is_recurring_parent ? 'disabled' : '' }}>
+                        </div>
+
+                        <div>
+                            <label for="recurrence_end_date" class="block text-sm font-medium text-gray-700">Data Final da Recorrência</label>
+                            <input type="date" name="recurrence_end_date" id="recurrence_end_date" 
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
+                                value="{{ old('recurrence_end_date', isset($transaction) && $transaction->recurrence_end_date ? $transaction->recurrence_end_date->format('Y-m-d') : '') }}"
+                                {{ isset($transaction) && !$transaction->is_recurring_parent ? 'disabled' : '' }}>
+                        </div>
+                    </div>
+
+                    @if(isset($transaction) && ($transaction->is_recurring_parent || $transaction->is_recurring_child))
+                    <div class="md:col-span-2">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" name="update_all_recurrences" id="update_all_recurrences" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="update_all_recurrences" class="font-medium text-gray-700">Atualizar todas as recorrências</label>
+                                <p class="text-gray-500">Marque esta opção para atualizar todas as transações recorrentes relacionadas</p>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
-            </div>
+
+                <div class="mt-6 flex justify-end space-x-3">
+                    <a href="{{ route('transactions.index') }}" class="bg-gray-200 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        {{ isset($transaction) ? 'Atualizar' : 'Criar' }}
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
     @push('scripts')
     <script>
-        function togglePaymentMethod() {
-            const paymentMethod = document.getElementById('payment_method').value;
-            const accountSection = document.getElementById('account_section');
-            const creditCardSection = document.getElementById('credit_card_section');
-            
-            if (paymentMethod === 'account') {
-                accountSection.classList.remove('hidden');
-                creditCardSection.classList.add('hidden');
-                document.getElementById('credit_card_id').value = '';
-            } else if (paymentMethod === 'credit_card') {
-                accountSection.classList.add('hidden');
-                creditCardSection.classList.remove('hidden');
-                document.getElementById('account_id').value = '';
-            } else {
-                accountSection.classList.add('hidden');
-                creditCardSection.classList.add('hidden');
-                document.getElementById('account_id').value = '';
-                document.getElementById('credit_card_id').value = '';
-            }
+    document.addEventListener('DOMContentLoaded', function() {
+        const recurringCheckbox = document.getElementById('recurring');
+        const recurrenceFields = document.getElementById('recurrence_fields');
+
+        function toggleRecurrenceFields() {
+            recurrenceFields.style.display = recurringCheckbox.checked ? 'grid' : 'none';
         }
 
-        function toggleInstallments() {
-            const isRecurring = document.getElementById('is_recurring').checked;
-            const installmentsSection = document.getElementById('installments_section');
-            
-            if (isRecurring) {
-                installmentsSection.classList.remove('hidden');
-            } else {
-                installmentsSection.classList.add('hidden');
-                document.getElementById('installments').value = '';
-            }
-        }
+        recurringCheckbox.addEventListener('change', toggleRecurrenceFields);
+        toggleRecurrenceFields();
+    });
     </script>
     @endpush
-@endsection 
+@endsection

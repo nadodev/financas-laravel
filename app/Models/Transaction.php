@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class Transaction extends Model
 {
@@ -16,37 +19,41 @@ class Transaction extends Model
         'date',
         'type',
         'category_id',
-        'user_id',
         'account_id',
-        'credit_card_id',
-        'credit_card_invoice_id',
-        'notes',
-        'is_recurring',
-        'installments',
-        'current_installment',
-        'total_installments',
+        'status',
+        'user_id',
+        'attachment',
+        'recurring',
         'recurrence_interval',
         'recurrence_end_date',
-        'payment_status',
-        'payment_date',
-        'paid_with_account_id',
+        'next_recurrence_date',
+        'parent_id',
+        'installment',
+        'total_installments',
+        'current_installment',
+        'is_recurring_parent'
     ];
 
     protected $casts = [
-        'date' => 'datetime',
-        'amount' => 'decimal:2',
-        'is_recurring' => 'boolean',
-        'recurrence_end_date' => 'datetime',
-        'payment_date' => 'datetime',
+        'amount' => 'float',
+        'date' => 'date',
+        'recurring' => 'boolean',
+        'recurrence_interval' => 'integer',
+        'recurrence_end_date' => 'date',
+        'next_recurrence_date' => 'date',
+        'installment' => 'boolean',
+        'total_installments' => 'integer',
+        'current_installment' => 'integer',
+        'is_recurring_parent' => 'boolean'
     ];
 
     protected $with = ['category', 'account'];
 
-    // Status de pagamento disponíveis
-    public static $paymentStatuses = [
+    // Status disponíveis
+    public static $statuses = [
         'pending' => 'Pendente',
         'paid' => 'Pago',
-        'overdue' => 'Vencido',
+        'cancelled' => 'Cancelado',
     ];
 
     public function category(): BelongsTo
@@ -64,35 +71,24 @@ class Transaction extends Model
         return $this->belongsTo(Account::class);
     }
 
-    public function paidWithAccount(): BelongsTo
+    public function parent(): BelongsTo
     {
-        return $this->belongsTo(Account::class, 'paid_with_account_id');
+        return $this->belongsTo(Transaction::class, 'parent_id');
     }
 
-    public function creditCard(): BelongsTo
+    public function recurrences(): HasMany
     {
-        return $this->belongsTo(CreditCard::class);
+        return $this->hasMany(Transaction::class, 'parent_id')->where('recurring', true);
     }
 
-    public function creditCardInvoice(): BelongsTo
+    public function allRecurrences(): HasMany
     {
-        return $this->belongsTo(CreditCardInvoice::class);
+        return $this->hasMany(Transaction::class, 'parent_id');
     }
 
-    public function markAsPaid(Account $paidWithAccount)
+    public function installments(): HasMany
     {
-        $this->payment_status = 'paid';
-        $this->payment_date = now();
-        $this->paid_with_account_id = $paidWithAccount->id;
-        $this->save();
-
-        // Atualiza o saldo da conta usada para pagar/receber
-        if ($this->type === 'expense') {
-            $paidWithAccount->balance -= $this->amount;
-        } else {
-            $paidWithAccount->balance += $this->amount;
-        }
-        $paidWithAccount->save();
+        return $this->hasMany(Transaction::class, 'parent_id')->where('installment', true);
     }
 
     public function getActionButtonTextAttribute()
@@ -111,111 +107,55 @@ class Transaction extends Model
 
     public function getStatusTextAttribute()
     {
-        $baseStatus = self::$paymentStatuses[$this->payment_status];
-        if ($this->type === 'income') {
-            switch ($this->payment_status) {
-                case 'pending':
-                    return 'A Receber';
-                case 'paid':
-                    return 'Recebido';
-                case 'overdue':
-                    return 'Atrasado';
-                default:
-                    return $baseStatus;
-            }
-        }
-        return $baseStatus;
+        return self::$statuses[$this->status] ?? $this->status;
     }
 
-    public function checkOverdue()
+    public function getTypeTextAttribute()
     {
-        if ($this->payment_status === 'pending' && $this->date->isPast()) {
-            $this->payment_status = 'overdue';
-            $this->save();
+        return $this->type === 'income' ? 'Receita' : 'Despesa';
+    }
+
+    public function getAttachmentUrlAttribute()
+    {
+        return $this->attachment ? Storage::url($this->attachment) : null;
+    }
+
+    public function getIsRecurringChildAttribute()
+    {
+        return $this->recurring && $this->parent_id !== null;
+    }
+
+    public function calculateNextRecurrenceDate()
+    {
+        if (!$this->recurring || !$this->recurrence_interval) {
+            return null;
         }
+
+        $lastDate = $this->next_recurrence_date ?? $this->date;
+        $nextDate = Carbon::parse($lastDate)->addDays($this->recurrence_interval);
+
+        // Se tiver data final e a próxima data ultrapassar, retorna null
+        if ($this->recurrence_end_date && $nextDate->gt($this->recurrence_end_date)) {
+            return null;
+        }
+
+        return $nextDate;
     }
 
     protected static function boot()
     {
         parent::boot();
 
-        // Ao criar uma transação
-        static::created(function ($transaction) {
-            if ($transaction->account_id) {
-                $account = $transaction->account;
-                if ($transaction->type === 'income') {
-                    $account->balance += $transaction->amount;
-                } else {
-                    $account->balance -= $transaction->amount;
-                }
-                $account->save();
+        // Quando uma transação for excluída
+        static::deleting(function ($transaction) {
+            // Se for uma transação pai recorrente, exclui todas as recorrências
+            if ($transaction->is_recurring_parent) {
+                $transaction->allRecurrences()->delete();
             }
 
-            if ($transaction->credit_card_invoice_id) {
-                $invoice = $transaction->creditCardInvoice;
-                $invoice->amount += $transaction->amount;
-                $invoice->save();
-            }
-        });
-
-        // Ao atualizar uma transação
-        static::updated(function ($transaction) {
-            if ($transaction->isDirty('amount') || $transaction->isDirty('type') || $transaction->isDirty('account_id')) {
-                // Se mudou de conta, restaura o saldo da conta antiga
-                if ($transaction->getOriginal('account_id')) {
-                    $oldAccount = Account::find($transaction->getOriginal('account_id'));
-                    if ($transaction->getOriginal('type') === 'income') {
-                        $oldAccount->balance -= $transaction->getOriginal('amount');
-                    } else {
-                        $oldAccount->balance += $transaction->getOriginal('amount');
-                    }
-                    $oldAccount->save();
-                }
-
-                // Atualiza o saldo da nova conta
-                if ($transaction->account_id) {
-                    $account = $transaction->account;
-                    if ($transaction->type === 'income') {
-                        $account->balance += $transaction->amount;
-                    } else {
-                        $account->balance -= $transaction->amount;
-                    }
-                    $account->save();
-                }
-            }
-
-            // Atualiza o valor da fatura se necessário
-            if ($transaction->isDirty('amount') || $transaction->isDirty('credit_card_invoice_id')) {
-                if ($transaction->getOriginal('credit_card_invoice_id')) {
-                    $oldInvoice = CreditCardInvoice::find($transaction->getOriginal('credit_card_invoice_id'));
-                    $oldInvoice->amount -= $transaction->getOriginal('amount');
-                    $oldInvoice->save();
-                }
-
-                if ($transaction->credit_card_invoice_id) {
-                    $invoice = $transaction->creditCardInvoice;
-                    $invoice->amount += $transaction->amount;
-                    $invoice->save();
-                }
-            }
-        });
-
-        // Ao excluir uma transação
-        static::deleted(function ($transaction) {
-            if ($transaction->account_id) {
-                $account = $transaction->account;
-                if ($transaction->type === 'income') {
-                    $account->balance -= $transaction->amount;
-                } else {
-                    $account->balance += $transaction->amount;
-                }
-                $account->save();
-            }
-
-            if ($transaction->credit_card_invoice_id) {
-                $invoice = $transaction->creditCardInvoice;
-                $invoice->amount -= $transaction->amount;
-                $invoice->save();
+            // Remove o anexo se existir
+            if ($transaction->attachment) {
+                Storage::disk('public')->delete($transaction->attachment);
             }
         });
     }

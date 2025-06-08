@@ -183,7 +183,7 @@
                                     <select name="account_id" id="account_id" required
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                         @foreach(auth()->user()->accounts as $account)
-                                            <option value="{{ $account->id }}">
+                                            <option value="{{ $account->id }}" data-balance="{{ $account->balance }}">
                                                 {{ $account->name }} - Saldo: R$ {{ number_format($account->balance, 2, ',', '.') }}
                                             </option>
                                         @endforeach
@@ -288,6 +288,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const option = new Option(category.name, category.id);
             categorySelect.add(option);
         });
+
+        // Mostra ou esconde o aviso de saldo conforme o tipo
+        const accountSelect = document.getElementById('account_id');
+        updateBalanceWarning(type, accountSelect.options[accountSelect.selectedIndex]);
+    });
+
+    // Atualiza aviso de saldo quando a conta é alterada
+    document.getElementById('account_id').addEventListener('change', function() {
+        const type = document.getElementById('type').value;
+        updateBalanceWarning(type, this.options[this.selectedIndex]);
+    });
+
+    // Atualiza aviso de saldo quando o valor é alterado
+    document.getElementById('amount').addEventListener('input', function() {
+        const type = document.getElementById('type').value;
+        const accountSelect = document.getElementById('account_id');
+        updateBalanceWarning(type, accountSelect.options[accountSelect.selectedIndex]);
     });
 
     // Dispara o evento change para carregar as categorias iniciais
@@ -297,6 +314,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('newTransactionForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
+        if (!validateForm()) {
+            return;
+        }
+
         fetch(this.action, {
             method: 'POST',
             body: new FormData(this),
@@ -417,7 +438,53 @@ function validateForm() {
         showErrorMessage('Por favor, insira um valor válido');
         return false;
     }
+
+    const type = document.getElementById('type').value;
+    const paymentStatus = document.getElementById('payment_status').value;
+    
+    if (type === 'expense' && paymentStatus === 'paid') {
+        const accountSelect = document.getElementById('account_id');
+        const option = accountSelect.options[accountSelect.selectedIndex];
+        const balance = parseFloat(option.dataset.balance || '0');
+        const value = parseFloat(amount.replace('R$', '').replace('.', '').replace(',', '.'));
+        
+        if (value > balance) {
+            showErrorMessage(`Saldo insuficiente. Saldo disponível: R$ ${balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+            return false;
+        }
+    }
+
     return true;
+}
+
+function updateBalanceWarning(type, accountOption) {
+    const warningDiv = document.getElementById('balanceWarning') || createBalanceWarning();
+    const amount = document.getElementById('amount').value;
+    const value = parseFloat(amount.replace('R$', '').replace('.', '').replace(',', '.'));
+    const balance = parseFloat(accountOption.dataset.balance || '0');
+    const paymentStatus = document.getElementById('payment_status').value;
+
+    if (type === 'expense' && paymentStatus === 'paid') {
+        warningDiv.style.display = 'block';
+        if (value > balance) {
+            warningDiv.className = 'mt-2 text-red-600 text-sm';
+            warningDiv.textContent = `Atenção: Valor maior que o saldo disponível (R$ ${balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`;
+        } else {
+            warningDiv.className = 'mt-2 text-gray-600 text-sm';
+            warningDiv.textContent = `Saldo disponível: R$ ${balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+        }
+    } else {
+        warningDiv.style.display = 'none';
+    }
+}
+
+function createBalanceWarning() {
+    const div = document.createElement('div');
+    div.id = 'balanceWarning';
+    div.className = 'mt-2 text-gray-600 text-sm';
+    const amountField = document.querySelector('#amount').parentElement.parentElement;
+    amountField.appendChild(div);
+    return div;
 }
 
 function showSuccessMessage(message) {

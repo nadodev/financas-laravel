@@ -11,15 +11,15 @@
                     Verificar Vencidas
                 </button>
             </form>
-            <button type="button" @click="showModal = true" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+            <a href="{{ route('transactions.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
                 Nova Transação
-            </button>
+            </a>
         </div>
     </div>
 
     <!-- Filtros -->
     <div class="bg-white shadow rounded-lg p-6 mb-6">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label for="month" class="block text-sm font-medium text-gray-700">Mês</label>
                 <select name="month" id="month" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -39,25 +39,19 @@
             </div>
 
             <div>
-                <label for="payment_status" class="block text-sm font-medium text-gray-700">Status de Pagamento</label>
-                <select name="payment_status" id="payment_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                <select name="status" id="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">Todos</option>
-                    @foreach(App\Models\Transaction::$paymentStatuses as $key => $status)
-                        <option value="{{ $key }}" {{ request('payment_status') == $key ? 'selected' : '' }}>{{ $status }}</option>
-                    @endforeach
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pendente</option>
+                    <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Pago</option>
+                    <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelado</option>
                 </select>
             </div>
 
-            <div>
-                <label for="transaction_type" class="block text-sm font-medium text-gray-700">Tipo de Transação</label>
-                <select name="transaction_type" id="transaction_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="">Todos</option>
-                    <option value="credit_card" {{ request('transaction_type') == 'credit_card' ? 'selected' : '' }}>Cartão de Crédito</option>
-                    <option value="account" {{ request('transaction_type') == 'account' ? 'selected' : '' }}>Conta</option>
-                </select>
-            </div>
-
-            <div class="md:col-span-4 flex justify-end">
+            <div class="md:col-span-3 flex justify-end space-x-2">
+                <a href="{{ route('transactions.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                    Limpar
+                </a>
                 <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded">
                     Filtrar
                 </button>
@@ -88,6 +82,7 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Anexo</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
             </thead>
@@ -99,13 +94,13 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ $transaction->description }}</div>
-                            @if($transaction->creditCard)
-                                <div class="text-sm text-gray-500">
-                                    {{ $transaction->creditCard->name }}
-                                    @if($transaction->creditCardInvoice)
-                                        - Fatura: {{ $transaction->creditCardInvoice->month }}/{{ $transaction->creditCardInvoice->year }}
-                                    @endif
-                                </div>
+                            @if($transaction->is_recurring_parent)
+                                <div class="text-xs text-gray-500">Transação Recorrente (Principal)</div>
+                            @elseif($transaction->is_recurring_child)
+                                <div class="text-xs text-gray-500">Transação Recorrente (Gerada)</div>
+                            @endif
+                            @if($transaction->installment)
+                                <div class="text-xs text-gray-500">Parcela {{ $transaction->current_installment }}/{{ $transaction->total_installments }}</div>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -113,7 +108,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $transaction->type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $transaction->type === 'income' ? 'Receita' : 'Despesa' }}
+                                {{ $transaction->type_text }}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm {{ $transaction->type === 'income' ? 'text-green-600' : 'text-red-600' }}">
@@ -124,33 +119,36 @@
                                 $statusColors = [
                                     'pending' => 'bg-yellow-100 text-yellow-800',
                                     'paid' => 'bg-green-100 text-green-800',
-                                    'overdue' => 'bg-red-100 text-red-800',
+                                    'cancelled' => 'bg-red-100 text-red-800',
                                 ];
                             @endphp
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusColors[$transaction->payment_status] }}">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusColors[$transaction->status] }}">
                                 {{ $transaction->status_text }}
                             </span>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if($transaction->attachment)
+                                <a href="{{ $transaction->attachment_url }}" target="_blank" class="text-indigo-600 hover:text-indigo-900">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                    </svg>
+                                </a>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
-                                @if($transaction->payment_status === 'pending' || $transaction->payment_status === 'overdue')
+                                @if($transaction->status === 'pending')
                                     <button type="button" 
                                         onclick="openPaymentModal('{{ $transaction->id }}', '{{ $transaction->action_description }}', '{{ number_format($transaction->amount, 2, ',', '.') }}')"
                                         class="text-indigo-600 hover:text-indigo-900">
                                         {{ $transaction->action_button_text }}
                                     </button>
                                 @endif
+                                {{-- <a href="{{ route('transactions.edit', $transaction) }}" class="text-gray-600 hover:text-gray-900" x-data="{ showEditModal: true }">
+                                    Editar
+                                </a> --}}
                                 <button type="button" 
-                                    @click="openEditModal({
-                                        id: {{ $transaction->id }},
-                                        description: '{{ str_replace("'", "\\'", $transaction->description) }}',
-                                        amount: {{ $transaction->amount }},
-                                        date: '{{ $transaction->date->format('Y-m-d') }}',
-                                        type: '{{ $transaction->type }}',
-                                        category_id: {{ $transaction->category_id ?? 'null' }},
-                                        account_id: {{ $transaction->account_id ?? 'null' }},
-                                        notes: '{{ str_replace("'", "\\'", $transaction->notes ?? '') }}'
-                                    })"
+                                    @click="showEditModal = true"
                                     class="text-gray-600 hover:text-gray-900">
                                     Editar
                                 </button>
@@ -164,7 +162,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                             Nenhuma transação encontrada.
                         </td>
                     </tr>
@@ -190,21 +188,10 @@
                     <div class="sm:flex sm:items-start">
                         <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
                             <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                Registrar Transação
+                                Registrar Pagamento
                             </h3>
                             <div class="mt-2">
                                 <p class="text-sm text-gray-500" id="transaction-details"></p>
-                                <div class="mt-4">
-                                    <label for="account_id" class="block text-sm font-medium text-gray-700">Conta</label>
-                                    <select name="account_id" id="account_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">Selecione uma conta</option>
-                                        @foreach($accounts as $account)
-                                            <option value="{{ $account->id }}">
-                                                {{ $account->name }} - Saldo: R$ {{ number_format($account->balance, 2, ',', '.') }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -222,6 +209,7 @@
     </div>
 </div>
 
+@include('transactions._edit_modal', compact('categories', 'accounts'))
 @endsection
 
 @push('scripts')
@@ -235,5 +223,15 @@ function openPaymentModal(transactionId, description, amount) {
 function closePaymentModal() {
     document.getElementById('paymentModal').classList.add('hidden');
 }
+
+function openEditModal(transactionId) {
+    document.getElementById('editModal').classList.remove('hidden');
+    document.getElementById('editForm').action = `/transactions/${transactionId}`;
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.add('hidden');
+}
+
 </script>
 @endpush 
