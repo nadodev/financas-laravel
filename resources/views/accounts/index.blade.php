@@ -1,5 +1,4 @@
 @extends('layouts.dashboard')
-
 @section('content')
 <div class="" x-data="{ showModal: false }">
     <div class="sm:px-6 lg:px-8">
@@ -120,9 +119,10 @@
                 </div>
             </div>
         </div>
-
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6 text-gray-900">
+        <div class="overflow-hidden shadow-sm sm:rounded-lg">
+          
+            <div class="text-gray-900 ">
+                <h2 class="text-2xl font-bold mb-4">Minhas Contas</h2>
                 @if(!auth()->user()->checkAccountLimit())
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
                         <div class="flex">
@@ -143,8 +143,16 @@
                     </div>
                 @endif
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Minhas Contas</h2>
-                    <div class="flex items-center space-x-4">
+                  
+                    <div class="flex items-center space-x-4 bg-white w-full rounded-lg p-4 justify-between shadow-sm">
+                        <button 
+                        @click="showModal = true"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        {{ !auth()->user()->checkAccountLimit() ? 'disabled' : '' }}
+                        title="{{ !auth()->user()->checkAccountLimit() ? 'Limite de contas atingido' : 'Criar nova conta' }}"
+                    >
+                        Nova Conta
+                    </button>
                         <p class="text-sm text-gray-600">
                             @php
                                 $remaining = auth()->user()->getRemainingAccounts();
@@ -157,14 +165,7 @@
                             </span>
                             <span class="text-gray-400">(Limite do plano: {{ $limit }})</span>
                         </p>
-                        <button 
-                            @click="showModal = true"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                            {{ !auth()->user()->checkAccountLimit() ? 'disabled' : '' }}
-                            title="{{ !auth()->user()->checkAccountLimit() ? 'Limite de contas atingido' : 'Criar nova conta' }}"
-                        >
-                            Nova Conta
-                        </button>
+                       
                     </div>
                 </div>
 
