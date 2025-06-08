@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class CreditCardInvoice extends Model
 {
@@ -54,6 +55,12 @@ class CreditCardInvoice extends Model
         $this->status = 'closed';
         $this->save();
 
+        // Marca todas as transações da fatura como pagas
+        $this->transactions()->update([
+            'payment_status' => 'paid',
+            'payment_date' => Carbon::now()
+        ]);
+
         // Cria a próxima fatura
         $nextClosingDate = $this->closing_date->copy()->addMonth();
         $nextDueDate = $this->due_date->copy()->addMonth();
@@ -70,27 +77,55 @@ class CreditCardInvoice extends Model
         return $this;
     }
 
-    public function markAsPaid()
+    public function markAsClosed()
     {
-        if ($this->status !== 'closed' && $this->status !== 'overdue') {
-            throw new \Exception('Apenas faturas fechadas ou vencidas podem ser pagas.');
+        if ($this->status === 'open') {
+            $this->status = 'closed';
+            $this->closing_date = now();
+            $this->save();
+        }
+    }
+
+    public function markAsPaid(Account $paidWithAccount)
+    {
+        if ($this->status !== 'closed') {
+            throw new \Exception('Apenas faturas fechadas podem ser pagas.');
         }
 
-        // Cria uma transação de pagamento na conta vinculada ao cartão
-        Transaction::create([
-            'description' => 'Pagamento da fatura ' . $this->month . '/' . $this->year . ' - ' . $this->creditCard->name,
-            'amount' => $this->amount,
-            'date' => Carbon::now(),
-            'type' => 'expense',
-            'category_id' => Category::where('name', 'Cartão de Crédito')->first()->id,
-            'user_id' => $this->creditCard->user_id,
-            'account_id' => $this->creditCard->account_id,
-        ]);
+        DB::transaction(function () use ($paidWithAccount) {
+            $this->status = 'paid';
+            $this->payment_date = now();
+            $this->paid_with_account_id = $paidWithAccount->id;
+            $this->save();
 
-        $this->status = 'paid';
-        $this->save();
+            // Atualiza o saldo da conta
+            $paidWithAccount->balance -= $this->total_amount;
+            $paidWithAccount->save();
+        });
+    }
 
-        return $this;
+    public static function getCurrentOpenInvoice($creditCardId)
+    {
+        return static::where('credit_card_id', $creditCardId)
+                    ->where('status', 'open')
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+    }
+
+    public static function getOrCreateOpenInvoice($creditCardId, $dueDate)
+    {
+        $openInvoice = static::getCurrentOpenInvoice($creditCardId);
+        
+        if (!$openInvoice) {
+            $openInvoice = static::create([
+                'credit_card_id' => $creditCardId,
+                'due_date' => $dueDate,
+                'status' => 'open',
+                'total_amount' => 0
+            ]);
+        }
+
+        return $openInvoice;
     }
 
     public function checkOverdue()

@@ -14,7 +14,7 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
+    @yield('styles')
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="font-sans antialiased" x-data="{ sidebarOpen: window.innerWidth >= 768 }">
@@ -71,6 +71,10 @@
                 </a>
 
                 <div class="mt-8 pt-8 border-t border-gray-200">
+                    <a href="{{ route('calendar.index') }}" class="group flex items-center px-2 py-2 text-base font-medium rounded-md {{ request()->routeIs('calendar.*') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <i class="fas fa-user mr-3 {{ request()->routeIs('calendar.*') ? 'text-gray-500' : 'text-gray-400 group-hover:text-gray-500' }}"></i>
+                        Calendário
+                    </a>
                     <a href="{{ route('settings.dashboard') }}" class="group flex items-center px-2 py-2 text-base font-medium rounded-md {{ request()->routeIs('settings.*') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         <i class="fas fa-user mr-3 {{ request()->routeIs('settings.*') ? 'text-gray-500' : 'text-gray-400 group-hover:text-gray-500' }}"></i>
                         Configurações
@@ -137,7 +141,6 @@
             </main>
         </div>
     </div>
-
     @stack('scripts')
 </body>
 </html> 

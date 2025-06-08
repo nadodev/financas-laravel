@@ -4,17 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\CreditCard;
 use App\Models\Account;
+use App\Models\CreditCardInvoice;
 use Illuminate\Http\Request;
 
 class CreditCardController extends Controller
 {
     public function index()
     {
-        $creditCards = CreditCard::with('account')
-            ->where('user_id', auth()->id())
-            ->orderBy('name')
-            ->get();
-
+        $creditCards = auth()->user()->creditCards()->with(['currentInvoice'])->get();
         return view('credit-cards.index', compact('creditCards'));
     }
 
@@ -98,50 +95,48 @@ class CreditCardController extends Controller
             ->with('success', 'Cartão de crédito excluído com sucesso!');
     }
 
-    public function invoices(CreditCard $creditCard)
+    public function show(CreditCard $creditCard)
     {
-        $this->authorize('view', $creditCard);
-
         $invoices = $creditCard->invoices()
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
-        return view('credit-cards.invoices', compact('creditCard', 'invoices'));
+        return view('credit-cards.show', compact('creditCard', 'invoices'));
     }
 
-    public function currentInvoice(CreditCard $creditCard)
+    public function closeInvoice(CreditCardInvoice $invoice)
     {
-        $this->authorize('view', $creditCard);
+        try {
+            if ($invoice->status !== 'open') {
+                throw new \Exception('Apenas faturas abertas podem ser fechadas.');
+            }
 
-        $invoice = $creditCard->getCurrentInvoice();
-        $transactions = $invoice->transactions()
-            ->with('category')
-            ->orderBy('date')
-            ->get();
+            $invoice->markAsClosed();
 
-        return view('credit-cards.current-invoice', compact('creditCard', 'invoice', 'transactions'));
+            return redirect()->back()->with('success', 'Fatura fechada com sucesso!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
     }
 
-    public function closeInvoice(CreditCard $creditCard)
+    public function payInvoice(Request $request, CreditCardInvoice $invoice)
     {
-        $this->authorize('update', $creditCard);
+        try {
+            $request->validate([
+                'account_id' => 'required|exists:accounts,id'
+            ]);
 
-        $invoice = $creditCard->getCurrentInvoice();
-        $invoice->close();
+            $account = Account::findOrFail($request->account_id);
+            
+            if ($account->balance < $invoice->total_amount) {
+                throw new \Exception('Saldo insuficiente na conta selecionada.');
+            }
 
-        return redirect()->route('credit-cards.invoices', $creditCard)
-            ->with('success', 'Fatura fechada com sucesso!');
-    }
+            $invoice->markAsPaid($account);
 
-    public function payInvoice(CreditCard $creditCard)
-    {
-        $this->authorize('update', $creditCard);
-
-        $invoice = $creditCard->getCurrentInvoice();
-        $invoice->markAsPaid();
-
-        return redirect()->route('credit-cards.invoices', $creditCard)
-            ->with('success', 'Fatura marcada como paga com sucesso!');
+            return redirect()->back()->with('success', 'Fatura paga com sucesso!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
     }
 } 

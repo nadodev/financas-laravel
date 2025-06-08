@@ -65,8 +65,7 @@
                                 <div class="text-sm leading-5 text-gray-900">{{ $card->account->name }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm leading-5 font-medium">
-                                <a href="{{ route('credit-cards.current-invoice', $card) }}" class="text-blue-600 hover:text-blue-900 mr-3">Fatura Atual</a>
-                                <a href="{{ route('credit-cards.invoices', $card) }}" class="text-green-600 hover:text-green-900 mr-3">Faturas</a>
+                                <a href="{{ route('credit-cards.show', $card) }}" class="text-blue-600 hover:text-blue-900 mr-3">Ver Faturas</a>
                                 <a href="{{ route('credit-cards.edit', $card) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Editar</a>
                                 <form action="{{ route('credit-cards.destroy', $card) }}" method="POST" class="inline">
                                     @csrf

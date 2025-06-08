@@ -10,6 +10,7 @@ use App\Services\TransactionService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
@@ -53,41 +54,36 @@ class TransactionController extends Controller
         ];
 
         // Get transactions for the selected month
-        $transactions = Transaction::with(['category', 'account'])
+        $query = Transaction::with(['category', 'account', 'creditCard', 'creditCardInvoice'])
             ->where('user_id', $user->id)
             ->whereMonth('date', $currentMonth)
-            ->whereYear('date', $currentYear)
-            ->orderBy('date', 'desc')
+            ->whereYear('date', $currentYear);
+
+        // Filtrar por status de pagamento
+        if ($request->has('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        // Filtrar por tipo de transação (cartão de crédito ou conta)
+        if ($request->has('transaction_type')) {
+            if ($request->transaction_type === 'credit_card') {
+                $query->whereNotNull('credit_card_id');
+            } elseif ($request->transaction_type === 'account') {
+                $query->whereNull('credit_card_id');
+            }
+        }
+
+        $transactions = $query->orderBy('date', 'desc')
+            ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        // Calculate current balance (sum of all accounts)
-        $currentBalance = $user->accounts()->sum('balance');
-
-        // Calculate summary for the selected month
-        $income = Transaction::where('user_id', $user->id)
-            ->where('type', 'income')
-            ->whereMonth('date', $currentMonth)
-            ->whereYear('date', $currentYear)
-            ->sum('amount');
-
-        $expenses = Transaction::where('user_id', $user->id)
-            ->where('type', 'expense')
-            ->whereMonth('date', $currentMonth)
-            ->whereYear('date', $currentYear)
-            ->sum('amount');
-
-        $balance = $income - $expenses;
-
-        // Get categories and accounts for modals
-        $categories = Category::where('user_id', $user->id)->get();
-        $accounts = Account::where('user_id', $user->id)->get();
+        // Get user accounts for payment
+        $accounts = Account::where('user_id', $user->id)
+            ->orderBy('name')
+            ->get();
 
         return view('transactions.index', compact(
             'transactions',
-            'income',
-            'expenses',
-            'balance',
-            'currentBalance',
             'currentMonth',
             'currentYear',
             'previousMonth',
@@ -96,7 +92,6 @@ class TransactionController extends Controller
             'nextYear',
             'months',
             'years',
-            'categories',
             'accounts'
         ));
     }
@@ -115,32 +110,67 @@ class TransactionController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'description' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
-            'date' => 'required|date',
-            'type' => 'required|in:income,expense',
-            'category_id' => 'required|exists:categories,id',
-            'account_id' => 'required|exists:accounts,id',
-            'is_recurring' => 'boolean',
-            'recurrence_interval' => 'nullable|required_if:is_recurring,true|in:daily,weekly,monthly,yearly',
-            'recurrence_end_date' => 'nullable|required_if:is_recurring,true|date|after:date',
-        ]);
+        try {
+            $request->validate([
+                'description' => 'required|string|max:255',
+                'amount' => 'required|string',
+                'date' => 'required|date',
+                'type' => 'required|in:income,expense',
+                'category_id' => 'required|exists:categories,id',
+                'account_id' => 'required|exists:accounts,id',
+                'payment_status' => 'required|in:pending,paid'
+            ]);
 
-        // Garantir que is_recurring seja um booleano
-        $validated['is_recurring'] = filter_var($validated['is_recurring'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            // Converte o valor de moeda para decimal
+            $amount = str_replace(['R$', '.', ','], ['', '', '.'], $request->amount);
 
-        // Se não for recorrente, limpar os campos de recorrência
-        if (!$validated['is_recurring']) {
-            $validated['recurrence_interval'] = null;
-            $validated['recurrence_end_date'] = null;
+            DB::beginTransaction();
+
+            $transaction = Transaction::create([
+                'description' => $request->description,
+                'amount' => $amount,
+                'date' => $request->date,
+                'type' => $request->type,
+                'category_id' => $request->category_id,
+                'account_id' => $request->account_id,
+                'payment_status' => $request->payment_status,
+                'user_id' => auth()->id()
+            ]);
+
+            // Se a transação for marcada como paga, atualiza o saldo da conta
+            if ($request->payment_status === 'paid') {
+                $account = Account::findOrFail($request->account_id);
+                if ($request->type === 'income') {
+                    $account->balance += (float) $amount;
+                } else {
+                    $account->balance -= (float) $amount;
+                }
+                $account->save();
+            }
+
+            DB::commit();
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Transação criada com sucesso!',
+                    'transaction' => $transaction
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Transação criada com sucesso!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erro ao criar transação: ' . $e->getMessage()
+                ], 422);
+            }
+
+            return redirect()->back()->with('error', 'Erro ao criar transação: ' . $e->getMessage());
         }
-
-        $validated['user_id'] = auth()->id();
-        $transaction = Transaction::create($validated);
-
-        return redirect()->route('transactions.index')
-            ->with('success', 'Transação criada com sucesso.');
     }
 
     public function show(Transaction $transaction)
@@ -187,5 +217,46 @@ class TransactionController extends Controller
 
         return redirect()->route('transactions.index')
             ->with('success', 'Transação excluída com sucesso.');
+    }
+
+    public function pay(Transaction $transaction, Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            $account = Account::findOrFail($request->account_id);
+            
+            // Verifica se a conta tem saldo suficiente para pagamento (apenas para despesas)
+            if ($transaction->type === 'expense' && $account->balance < $transaction->amount) {
+                return redirect()->back()->with('error', 'Saldo insuficiente na conta selecionada.');
+            }
+
+            $transaction->markAsPaid($account);
+
+            DB::commit();
+
+            $actionType = $transaction->type === 'expense' ? 'paga' : 'recebida';
+            return redirect()->back()->with('success', "Transação {$actionType} com sucesso!");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Erro ao processar a transação: ' . $e->getMessage());
+        }
+    }
+
+    public function checkOverdueTransactions()
+    {
+        $user = auth()->user();
+        
+        // Busca todas as transações pendentes vencidas
+        $overdueTransactions = Transaction::where('user_id', $user->id)
+            ->where('payment_status', 'pending')
+            ->where('date', '<', now())
+            ->get();
+
+        foreach ($overdueTransactions as $transaction) {
+            $transaction->checkOverdue();
+        }
+
+        return redirect()->back()->with('success', 'Status das transações atualizado com sucesso!');
     }
 } 

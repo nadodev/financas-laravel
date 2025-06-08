@@ -1,209 +1,239 @@
 @extends('layouts.dashboard')
 
 @section('content')
-<div class="" x-data="{ 
-    showModal: false,
-    showEditModal: false,
-    editingTransaction: {
-        id: null,
-        description: '',
-        amount: '',
-        date: '',
-        type: '',
-        category_id: '',
-        account_id: '',
-        notes: ''
-    },
-    editUrl: '',
-    openEditModal(transaction) {
-        this.editingTransaction = {
-            id: transaction.id,
-            description: transaction.description,
-            amount: transaction.amount,
-            date: transaction.date,
-            type: transaction.type,
-            category_id: transaction.category_id,
-            account_id: transaction.account_id,
-            notes: transaction.notes || ''
-        };
-        this.editUrl = `/transactions/${transaction.id}`;
-        this.showEditModal = true;
-    }
-}">
-    <div class="sm:px-6 lg:px-8">
-        <!-- Month Navigation -->
-        <div class="bg-white rounded-lg shadow-sm mb-6">
-            <div class="p-4 flex items-center justify-between">
-                <a href="{{ route('transactions.index', ['month' => $previousMonth, 'year' => $previousYear]) }}" 
-                   class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                    Mês Anterior
-                </a>
-                
-                <div class="flex items-center space-x-4">
-                    <select name="month" 
-                            class="rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                            onchange="window.location.href = '{{ route('transactions.index') }}?month=' + this.value + '&year={{ $currentYear }}'">
-                        @foreach($months as $key => $monthName)
-                            <option value="{{ $key }}" {{ $currentMonth == $key ? 'selected' : '' }}>
-                                {{ $monthName }}
-                            </option>
-                        @endforeach
-                    </select>
-                    
-                    <select name="year" 
-                            class="rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                            onchange="window.location.href = '{{ route('transactions.index') }}?month={{ $currentMonth }}&year=' + this.value">
-                        @foreach($years as $year)
-                            <option value="{{ $year }}" {{ $currentYear == $year ? 'selected' : '' }}>
-                                {{ $year }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <a href="{{ route('transactions.index', ['month' => $nextMonth, 'year' => $nextYear]) }}" 
-                   class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Próximo Mês
-                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </a>
-            </div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-semibold text-gray-900">Transações</h1>
+        <div class="flex space-x-4">
+            <form action="{{ route('transactions.check-overdue') }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">
+                    Verificar Vencidas
+                </button>
+            </form>
+            <button type="button" @click="showModal = true" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                Nova Transação
+            </button>
         </div>
+    </div>
 
-        @if(session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline">{{ session('success') }}</span>
+    <!-- Filtros -->
+    <div class="bg-white shadow rounded-lg p-6 mb-6">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="month" class="block text-sm font-medium text-gray-700">Mês</label>
+                <select name="month" id="month" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    @foreach($months as $key => $month)
+                        <option value="{{ $key }}" {{ $currentMonth == $key ? 'selected' : '' }}>{{ $month }}</option>
+                    @endforeach
+                </select>
             </div>
-        @endif
 
-        @if(session('error'))
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline">{{ session('error') }}</span>
+            <div>
+                <label for="year" class="block text-sm font-medium text-gray-700">Ano</label>
+                <select name="year" id="year" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    @foreach($years as $year)
+                        <option value="{{ $year }}" {{ $currentYear == $year ? 'selected' : '' }}>{{ $year }}</option>
+                    @endforeach
+                </select>
             </div>
-        @endif
 
-        @include('transactions._modal')
-        @include('transactions._edit_modal')
+            <div>
+                <label for="payment_status" class="block text-sm font-medium text-gray-700">Status de Pagamento</label>
+                <select name="payment_status" id="payment_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">Todos</option>
+                    @foreach(App\Models\Transaction::$paymentStatuses as $key => $status)
+                        <option value="{{ $key }}" {{ request('payment_status') == $key ? 'selected' : '' }}>{{ $status }}</option>
+                    @endforeach
+                </select>
+            </div>
 
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6 text-gray-900">
-                @if(!auth()->user()->checkTransactionLimit())
-                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-sm text-yellow-700">
-                                    Você atingiu o limite de transações para seu plano atual. 
-                                    <a href="{{ route('plans.index') }}" class="font-medium underline hover:text-yellow-800">
-                                        Conheça nossos planos disponíveis
-                                    </a>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                @endif
+            <div>
+                <label for="transaction_type" class="block text-sm font-medium text-gray-700">Tipo de Transação</label>
+                <select name="transaction_type" id="transaction_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">Todos</option>
+                    <option value="credit_card" {{ request('transaction_type') == 'credit_card' ? 'selected' : '' }}>Cartão de Crédito</option>
+                    <option value="account" {{ request('transaction_type') == 'account' ? 'selected' : '' }}>Conta</option>
+                </select>
+            </div>
 
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Minhas Transações</h2>
-                    <button 
-                        @click="showModal = true"
-                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                        {{ !auth()->user()->checkTransactionLimit() ? 'disabled' : '' }}
-                    >
-                        Nova Transação
-                    </button>
-                </div>
+            <div class="md:col-span-4 flex justify-end">
+                <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded">
+                    Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
 
-                <div class="flex flex-col lg:flex-row gap-6">
-                    <!-- Left side: Transactions List -->
-                    <div class="lg:w-2/3">
-                        <div class="grid grid-cols-1 gap-4">
-                            @foreach($transactions as $transaction)
-                                <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow duration-200">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">{{ $transaction->description }}</h3>
-                                            <p class="text-sm text-gray-600">{{ $transaction->date->format('d/m/Y') }}</p>
-                                        </div>
-                                        <div class="flex space-x-2">
-                                            <button type="button"
-                                                @click="openEditModal({
-                                                    id: {{ $transaction->id }},
-                                                    description: '{{ str_replace("'", "\\'", $transaction->description) }}',
-                                                    amount: {{ $transaction->amount }},
-                                                    date: '{{ $transaction->date->format('Y-m-d') }}',
-                                                    type: '{{ $transaction->type }}',
-                                                    category_id: {{ $transaction->category_id ?? 'null' }},
-                                                    account_id: {{ $transaction->account_id ?? 'null' }},
-                                                    notes: '{{ str_replace("'", "\\'", $transaction->notes ?? '') }}'
-                                                })"
-                                                class="text-gray-400 hover:text-indigo-600" 
-                                                title="Editar">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                                </svg>
-                                            </button>
-                                            <form action="{{ route('transactions.destroy', $transaction) }}" method="POST" class="inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" 
-                                                        class="text-gray-400 hover:text-red-600"
-                                                        title="Excluir"
-                                                        onclick="return confirm('Tem certeza que deseja excluir esta transação?')">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                    </svg>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-4 grid grid-cols-2 gap-4">
-                                        <div>
-                                            <span class="text-sm text-gray-500">Categoria:</span>
-                                            <p class="font-medium">{{ $transaction->category?->name ?? 'Sem categoria' }}</p>
-                                        </div>
-                                        <div>
-                                            <span class="text-sm text-gray-500">Conta:</span>
-                                            <p class="font-medium">{{ $transaction->account?->name ?? 'Sem conta' }}</p>
-                                        </div>
-                                    </div>
+    @if(session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <span class="block sm:inline">{{ session('success') }}</span>
+        </div>
+    @endif
 
-                                    <div class="mt-4 flex justify-between items-center">
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $transaction->type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                            {{ $transaction->type === 'income' ? 'Receita' : 'Despesa' }}
-                                        </span>
-                                        <span class="text-lg font-semibold {{ $transaction->type === 'income' ? 'text-green-600' : 'text-red-600' }}">
-                                            R$ {{ number_format($transaction->amount, 2, ',', '.') }}
-                                        </span>
-                                    </div>
+    @if(session('error'))
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <span class="block sm:inline">{{ session('error') }}</span>
+        </div>
+    @endif
 
-                                    @if($transaction->notes)
-                                        <div class="mt-4 text-sm text-gray-600">
-                                            <p class="italic">{{ $transaction->notes }}</p>
-                                        </div>
+    <!-- Lista de Transações -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($transactions as $transaction)
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ $transaction->date->format('d/m/Y') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ $transaction->description }}</div>
+                            @if($transaction->creditCard)
+                                <div class="text-sm text-gray-500">
+                                    {{ $transaction->creditCard->name }}
+                                    @if($transaction->creditCardInvoice)
+                                        - Fatura: {{ $transaction->creditCardInvoice->month }}/{{ $transaction->creditCardInvoice->year }}
                                     @endif
                                 </div>
-                            @endforeach
-                        </div>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ $transaction->category->name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $transaction->type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $transaction->type === 'income' ? 'Receita' : 'Despesa' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm {{ $transaction->type === 'income' ? 'text-green-600' : 'text-red-600' }}">
+                            R$ {{ number_format($transaction->amount, 2, ',', '.') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @php
+                                $statusColors = [
+                                    'pending' => 'bg-yellow-100 text-yellow-800',
+                                    'paid' => 'bg-green-100 text-green-800',
+                                    'overdue' => 'bg-red-100 text-red-800',
+                                ];
+                            @endphp
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusColors[$transaction->payment_status] }}">
+                                {{ $transaction->status_text }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex space-x-2">
+                                @if($transaction->payment_status === 'pending' || $transaction->payment_status === 'overdue')
+                                    <button type="button" 
+                                        onclick="openPaymentModal('{{ $transaction->id }}', '{{ $transaction->action_description }}', '{{ number_format($transaction->amount, 2, ',', '.') }}')"
+                                        class="text-indigo-600 hover:text-indigo-900">
+                                        {{ $transaction->action_button_text }}
+                                    </button>
+                                @endif
+                                <button type="button" 
+                                    @click="openEditModal({
+                                        id: {{ $transaction->id }},
+                                        description: '{{ str_replace("'", "\\'", $transaction->description) }}',
+                                        amount: {{ $transaction->amount }},
+                                        date: '{{ $transaction->date->format('Y-m-d') }}',
+                                        type: '{{ $transaction->type }}',
+                                        category_id: {{ $transaction->category_id ?? 'null' }},
+                                        account_id: {{ $transaction->account_id ?? 'null' }},
+                                        notes: '{{ str_replace("'", "\\'", $transaction->notes ?? '') }}'
+                                    })"
+                                    class="text-gray-600 hover:text-gray-900">
+                                    Editar
+                                </button>
+                                <form action="{{ route('transactions.destroy', $transaction) }}" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir esta transação?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-600 hover:text-red-900">Excluir</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                            Nenhuma transação encontrada.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 
-                        <div class="mt-6">
-                            {{ $transactions->links() }}
+    <div class="mt-4">
+        {{ $transactions->links() }}
+    </div>
+</div>
+
+<!-- Modal de Pagamento -->
+<div id="paymentModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <form id="paymentForm" action="" method="POST">
+                @csrf
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Registrar Transação
+                            </h3>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-500" id="transaction-details"></p>
+                                <div class="mt-4">
+                                    <label for="account_id" class="block text-sm font-medium text-gray-700">Conta</label>
+                                    <select name="account_id" id="account_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="">Selecione uma conta</option>
+                                        @foreach($accounts as $account)
+                                            <option value="{{ $account->id }}">
+                                                {{ $account->name }} - Saldo: R$ {{ number_format($account->balance, 2, ',', '.') }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    @include('transactions._summary_cards')
                 </div>
-            </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Confirmar
+                    </button>
+                    <button type="button" onclick="closePaymentModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
-@endsection 
+
+@endsection
+
+@push('scripts')
+<script>
+function openPaymentModal(transactionId, description, amount) {
+    document.getElementById('paymentModal').classList.remove('hidden');
+    document.getElementById('transaction-details').textContent = `${description} - R$ ${amount}`;
+    document.getElementById('paymentForm').action = `/transactions/${transactionId}/pay`;
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').classList.add('hidden');
+}
+</script>
+@endpush 

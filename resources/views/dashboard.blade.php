@@ -192,8 +192,7 @@
         @endif
     </div>
 </div>
-
-@push('scripts')
+@stack('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Configuração dos gráficos
@@ -259,5 +258,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-@endpush
 @endsection 

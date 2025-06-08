@@ -7,11 +7,17 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Traits\HasPlanLimits;
+use Laravel\Sanctum\HasApiTokens;
+use App\Models\Account;
+use App\Models\Category;
+use App\Models\CreditCard;
+use App\Models\FinancialGoal;
+use App\Models\Transaction;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasPlanLimits;
+    use HasFactory, Notifiable, HasPlanLimits, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -58,6 +64,16 @@ class User extends Authenticatable
     public function accounts()
     {
         return $this->hasMany(Account::class);
+    }
+
+    public function creditCards()
+    {
+        return $this->hasMany(CreditCard::class);
+    }
+
+    public function categories()
+    {
+        return $this->hasMany(Category::class);
     }
 
     public function financialGoals()

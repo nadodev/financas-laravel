@@ -27,6 +27,9 @@ class Transaction extends Model
         'total_installments',
         'recurrence_interval',
         'recurrence_end_date',
+        'payment_status',
+        'payment_date',
+        'paid_with_account_id',
     ];
 
     protected $casts = [
@@ -34,9 +37,17 @@ class Transaction extends Model
         'amount' => 'decimal:2',
         'is_recurring' => 'boolean',
         'recurrence_end_date' => 'datetime',
+        'payment_date' => 'datetime',
     ];
 
     protected $with = ['category', 'account'];
+
+    // Status de pagamento disponíveis
+    public static $paymentStatuses = [
+        'pending' => 'Pendente',
+        'paid' => 'Pago',
+        'overdue' => 'Vencido',
+    ];
 
     public function category(): BelongsTo
     {
@@ -53,6 +64,11 @@ class Transaction extends Model
         return $this->belongsTo(Account::class);
     }
 
+    public function paidWithAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'paid_with_account_id');
+    }
+
     public function creditCard(): BelongsTo
     {
         return $this->belongsTo(CreditCard::class);
@@ -61,6 +77,62 @@ class Transaction extends Model
     public function creditCardInvoice(): BelongsTo
     {
         return $this->belongsTo(CreditCardInvoice::class);
+    }
+
+    public function markAsPaid(Account $paidWithAccount)
+    {
+        $this->payment_status = 'paid';
+        $this->payment_date = now();
+        $this->paid_with_account_id = $paidWithAccount->id;
+        $this->save();
+
+        // Atualiza o saldo da conta usada para pagar/receber
+        if ($this->type === 'expense') {
+            $paidWithAccount->balance -= $this->amount;
+        } else {
+            $paidWithAccount->balance += $this->amount;
+        }
+        $paidWithAccount->save();
+    }
+
+    public function getActionButtonTextAttribute()
+    {
+        return $this->type === 'expense' ? 'Pagar' : 'Receber';
+    }
+
+    public function getActionDescriptionAttribute()
+    {
+        if ($this->type === 'expense') {
+            return 'Pagar ' . $this->description;
+        } else {
+            return 'Receber ' . $this->description;
+        }
+    }
+
+    public function getStatusTextAttribute()
+    {
+        $baseStatus = self::$paymentStatuses[$this->payment_status];
+        if ($this->type === 'income') {
+            switch ($this->payment_status) {
+                case 'pending':
+                    return 'A Receber';
+                case 'paid':
+                    return 'Recebido';
+                case 'overdue':
+                    return 'Atrasado';
+                default:
+                    return $baseStatus;
+            }
+        }
+        return $baseStatus;
+    }
+
+    public function checkOverdue()
+    {
+        if ($this->payment_status === 'pending' && $this->date->isPast()) {
+            $this->payment_status = 'overdue';
+            $this->save();
+        }
     }
 
     protected static function boot()
