@@ -1,5 +1,5 @@
 <x-guest-layout>
-    <div class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen flex items-center justify-center ">
         <div class="max-w-md w-full">
             <div class="text-center mb-8">
                 <h2 class="text-3xl font-extrabold text-gray-900 mb-2">
