@@ -1,32 +1,19 @@
 @extends('layouts.dashboard')
 
-@section('header')
-    <div class="flex items-center justify-between">
-        <h2 class="text-xl font-semibold text-gray-900">Orçamentos</h2>
+@section('content')
+<div class="px-4 sm:px-6 lg:px-8 py-6">
+  <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-semibold text-gray-900">Orçamentos</h1>
         <a href="{{ route('budgets.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             Novo Orçamento
         </a>
     </div>
-@endsection
-
-@section('content')
-    <div class="space-y-6">
-        @if(session('success'))
-            <div class="bg-green-50 border-l-4 border-green-400 p-4">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-green-700">{{ session('success') }}</p>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+    @if(session('success'))
+        <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+            {{ session('success') }}
+        </div>
+    @endif
+ <div class="bg-white shadow overflow-hidden sm:rounded-md">
             @if($budgets->isEmpty())
                 <div class="p-6 text-center text-gray-500">
                     Nenhum orçamento cadastrado.
@@ -87,5 +74,5 @@
                 </ul>
             @endif
         </div>
-    </div>
+</div>
 @endsection 

@@ -1,8 +1,8 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-2xl mx-auto">
+    <div class="px-4 py-8">
+        <div class="">
             <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
                 <h1 class="text-2xl font-bold text-gray-800 mb-6">
                     {{ isset($creditCard) ? 'Editar Cartão de Crédito' : 'Novo Cartão de Crédito' }}

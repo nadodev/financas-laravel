@@ -10,7 +10,7 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date').value = today;
     }
-}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-init="initializeForm">
+}" class="px-4 sm:px-6 lg:px-8 py-8" x-init="initializeForm">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-semibold text-gray-900">Transações</h1>
         <div class="flex space-x-4">

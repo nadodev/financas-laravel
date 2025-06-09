@@ -37,6 +37,7 @@ class DashboardController extends Controller
             12 => 'Dezembro'
         ];
 
+  
         $firstTransaction = Transaction::where('user_id', auth()->id())
             ->orderBy('date', 'asc')
             ->first();

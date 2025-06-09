@@ -1,37 +1,5 @@
 @extends('layouts.dashboard')
-@section('header')
-    <div class="">
-        <div class="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-            <h2 class="text-2xl font-bold text-gray-900 ml-8 mr-8">Visão Geral Financeira</h2>
-            <form method="GET" action="{{ route('dashboard') }}" class="flex flex-wrap gap-3">
-                <div class="flex items-center space-x-2">
-                    <select name="month" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-700">
-                        @foreach($months as $value => $label)
-                            <option value="{{ $value }}" {{ $selectedMonth == $value ? 'selected' : '' }}>
-                                {{ $label }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <select name="year" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-700">
-                        @foreach($years as $year)
-                            <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>
-                                {{ $year }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 ease-in-out shadow-sm">
-                        <span class="flex items-center space-x-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                            </svg>
-                            <span>Filtrar</span>
-                        </span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-@endsection
+
 
 @section('content')
     @php
@@ -41,6 +9,35 @@
     @endphp
 
     <div class="space-y-6">
+         <div class="px-4 flex items-center justify-between w-full flex-col lg:flex-row">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4 lg:mb-0">Visão Geral Financeira</h2>
+                <form method="GET" action="{{ route('dashboard') }}" class="flex flex-wrap gap-3">
+                    <div class="flex items-center space-x-2 ">
+                        <select name="month" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-700">
+                            @foreach($months as $value => $label)
+                                <option value="{{ $value }}" {{ $selectedMonth == $value ? 'selected' : '' }}>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <select name="year" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-gray-700">
+                            @foreach($years as $year)
+                                <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>
+                                    {{ $year }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 ease-in-out shadow-sm">
+                            <span class="flex items-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                                </svg>
+                                <span>Filtrar</span>
+                            </span>
+                        </button>
+                    </div>
+                </form>
+        </div>
         <!-- Performance Metrics -->
         @if($showAll || in_array('performance_metrics', $visibleSections))
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,7 +1,8 @@
 @extends('layouts.dashboard')
 @section('content')
+<div class="px-4 sm:px-6 lg:px-8 py-6">
 <div class="" x-data="{ showModal: false }">
-    <div class="sm:px-6 lg:px-8">
+    <div>
 
         @if(session('error'))
             <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
@@ -23,7 +24,6 @@
                 <div class="fixed inset-0 transition-opacity" aria-hidden="true">
                     <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
                 </div>
-
                 <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full md:max-w-2xl"
                      @click.away="showModal = false">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
@@ -300,5 +300,6 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection 

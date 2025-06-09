@@ -1,6 +1,6 @@
 <div
   id="sidebar"
-  class="fixed inset-y-0 left-0 z-30 w-[17rem] bg-white border-r border-gray-200 transform transition-transform duration-300"
+  class="fixed inset-y-0 left-0 z-30 w-[17rem] bg-white border-r border-gray-200 transform transition-transform duration-300 hidden lg:block"
   :class="{ '-translate-x-full': !sidebarOpen }"
 >           <div class="flex items-center justify-center h-16 border-b border-gray-200 bg-white shadow-sm px-4">
     <h1 class="text-2xl font-bold text-gray-800 tracking-tight flex items-center space-x-2">
