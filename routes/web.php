@@ -68,6 +68,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/{type}', [ReportController::class, 'show'])->name('reports.show');
     Route::get('/reports/{type}/export/{format}', [ReportController::class, 'export'])->name('reports.export');
+    Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
+    Route::get('/reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
 
     Route::resource('budgets', BudgetController::class);
 

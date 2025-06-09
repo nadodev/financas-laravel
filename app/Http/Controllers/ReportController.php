@@ -36,39 +36,9 @@ class ReportController extends Controller
         abort(404);
     }
 
-    public function export($type, $format, Request $request)
+    public function export(Request $request, $type, $format)
     {
-        switch ($type) {
-            case 'income-expense':
-                $export = new TransactionsExport($request->all());
-                break;
-            case 'categories':
-                $export = new CategoriesExport($request->all());
-                break;
-            case 'goals':
-                $export = new GoalsExport($request->all());
-                break;
-            case 'accounts':
-                $export = new AccountsExport($request->all());
-                break;
-            default:
-                abort(404);
-        }
-
-        $fileName = "relatorio-{$type}-" . now()->format('Y-m-d') . '.' . $format;
-
-        if ($format === 'pdf') {
-            $data = $this->{'report' . str_replace(' ', '', ucwords(str_replace('-', ' ', $type)))}($request);
-            $pdf = PDF::loadView("reports.pdf.{$type}", $data);
-            return $pdf->download($fileName);
-        }
-
-        return Excel::download($export, $fileName);
-    }
-
-    public function exportPdf(Request $request)
-    {
-        $data = match ($request->report_type) {
+        $data = match ($type) {
             'income-expense' => $this->reportIncomeExpense($request),
             'categories' => $this->reportCategories($request),
             'goals' => $this->reportGoals($request),
@@ -79,28 +49,15 @@ class ReportController extends Controller
         $data['start_date'] = $request->start_date;
         $data['end_date'] = $request->end_date;
         $data['generated_at'] = now()->format('d/m/Y H:i:s');
+        $data['reportType'] = $type;
 
-        $pdf = PDF::loadView("reports.pdf.{$request->report_type}", $data);
-        
-        return $pdf->download("relatorio-{$request->report_type}-" . now()->format('Y-m-d') . ".pdf");
-    }
+        $filename = "relatorio-{$type}-" . now()->format('Y-m-d');
 
-    public function exportExcel(Request $request)
-    {
-        $data = match ($request->report_type) {
-            'income-expense' => $this->reportIncomeExpense($request),
-            'categories' => $this->reportCategories($request),
-            'goals' => $this->reportGoals($request),
-            'accounts' => $this->reportAccounts($request),
-            default => throw new \InvalidArgumentException('Tipo de relatório inválido')
+        return match ($format) {
+            'pdf' => PDF::loadView("reports.pdf.{$type}", $data)->download("{$filename}.pdf"),
+            'xlsx' => Excel::download(new ReportExport($data), "{$filename}.xlsx"),
+            default => throw new \InvalidArgumentException('Formato de exportação inválido')
         };
-
-        $data['start_date'] = $request->start_date;
-        $data['end_date'] = $request->end_date;
-        $data['generated_at'] = now()->format('d/m/Y H:i:s');
-        $data['reportType'] = $request->report_type;
-
-        return Excel::download(new ReportExport($data), "relatorio-{$request->report_type}-" . now()->format('Y-m-d') . ".xlsx");
     }
 
     private function reportIncomeExpense(Request $request)
@@ -241,9 +198,15 @@ class ReportController extends Controller
         $progressAnalysis = [
             'completed' => $goals->where('status', 'completed')->count(),
             'in_progress' => $goals->where('status', 'in_progress')->count(),
-            'cancelled' => $goals->where('status', 'cancelled')->count(),
-            'completion_rate' => $totalGoals > 0 ? ($goals->where('status', 'completed')->count() / $totalGoals) * 100 : 0
+            'cancelled' => $goals->where('status', 'cancelled')->count()
         ];
+
+        // Calcular porcentagens de forma segura
+        foreach ($goals as $goal) {
+            $goal->progress_percentage = $goal->target_amount > 0 
+                ? min(100, ($goal->current_amount / $goal->target_amount) * 100) 
+                : 0;
+        }
 
         return [
             'reportType' => 'goals',

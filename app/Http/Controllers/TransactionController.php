@@ -29,15 +29,12 @@ class TransactionController extends Controller
     {
         $user = auth()->user();
         
-        // Pega o mês e ano atual se não houver filtro
         $currentMonth = $request->get('month', now()->month);
         $currentYear = $request->get('year', now()->year);
 
-        // Cria uma data com o mês e ano selecionados
         $startDate = Carbon::createFromDate($currentYear, $currentMonth, 1)->startOfMonth();
         $endDate = $startDate->copy()->endOfMonth();
 
-        // Meses em português
         $months = [
             1 => 'Janeiro',
             2 => 'Fevereiro',
@@ -53,25 +50,20 @@ class TransactionController extends Controller
             12 => 'Dezembro'
         ];
 
-        // Anos disponíveis (5 anos atrás até 1 ano à frente)
         $years = range(now()->subYears(5)->year, now()->addYear()->year);
 
-        // Query base
         $query = Transaction::with(['category', 'account'])
             ->where('user_id', $user->id)
             ->whereBetween('date', [$startDate, $endDate]);
 
-        // Filtro de status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Ordenação
         $transactions = $query->orderBy('date', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(10)
-            ->withQueryString(); // Mantém os parâmetros de filtro na paginação
-
+            ->withQueryString(); 
 
             $categories = Category::where('user_id', auth()->id())->get();
 
@@ -105,7 +97,6 @@ class TransactionController extends Controller
             $data = $request->validated();
             $data['user_id'] = auth()->id();
             
-            // Converte o valor para float
             $data['amount'] = (float) $data['amount'];
 
             // Verifica saldo se for despesa e estiver paga

@@ -15,16 +15,13 @@ class DashboardController extends Controller
     {
         $now = Carbon::now();
         
-        // Pegar o mês e ano selecionados ou usar o mês atual como padrão
         $selectedMonth = $request->get('month', $now->month);
         $selectedYear = $request->get('year', $now->year);
         
-        // Criar data com o mês/ano selecionado
         $selectedDate = Carbon::createFromDate($selectedYear, $selectedMonth, 1);
         $startOfMonth = $selectedDate->copy()->startOfMonth();
         $endOfMonth = $selectedDate->copy()->endOfMonth();
 
-        // Lista de meses para o seletor
         $months = [
             1 => 'Janeiro',
             2 => 'Fevereiro',
@@ -47,13 +44,11 @@ class DashboardController extends Controller
         $startYear = $firstTransaction ? $firstTransaction->date->year : $now->year;
         $years = range($startYear, $now->year);
 
-        // Cálculo do saldo total (considerando todas as transações até a data final do mês selecionado)
         $totalBalance = Transaction::where('user_id', auth()->id())
             ->where('date', '<=', $endOfMonth)
             ->selectRaw('SUM(CASE WHEN type = "income" THEN amount ELSE -amount END) as balance')
             ->value('balance') ?? 0;
 
-        // Receitas e despesas do mês selecionado
         $monthlyIncome = Transaction::where('user_id', auth()->id())
             ->where('type', 'income')
             ->whereBetween('date', [$startOfMonth, $endOfMonth])
@@ -64,10 +59,8 @@ class DashboardController extends Controller
             ->whereBetween('date', [$startOfMonth, $endOfMonth])
             ->sum('amount');
 
-        // Cálculo da economia do mês
         $monthlySavings = $monthlyIncome - $monthlyExpenses;
 
-        // Despesas por categoria do mês selecionado
         $expensesByCategory = Transaction::where('transactions.type', 'expense')
             ->where('transactions.user_id', auth()->id())
             ->whereBetween('transactions.date', [$startOfMonth, $endOfMonth])
@@ -76,7 +69,6 @@ class DashboardController extends Controller
             ->groupBy('categories.id', 'categories.name')
             ->get();
 
-        // Dados para o gráfico de fluxo de caixa (últimos 6 meses até o mês selecionado)
         $cashFlow = collect();
         for ($i = 5; $i >= 0; $i--) {
             $date = $selectedDate->copy()->subMonths($i);
