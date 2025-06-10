@@ -1,13 +1,14 @@
 @extends('layouts.dashboard')
 
 @section('content')
-<div class="px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-semibold text-gray-900">Relatórios Financeiros</h1>
     </div>
 
     <div class="bg-white shadow rounded-lg p-6 mb-6">
-        <form action="{{ route('reports.index') }}" method="GET" class="space-y-6">
+        <form action="/reports" method="GET" class="space-y-6" id="reportForm" onsubmit="return handleSubmit(event)">
+            <input type="hidden" name="_token" value="{{ csrf_token() }}">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                     <label for="report_type" class="block text-sm font-medium text-gray-700">Tipo de Relatório</label>
@@ -22,15 +23,29 @@
 
                 <div>
                     <label for="start_date" class="block text-sm font-medium text-gray-700">Data Inicial</label>
-                    <input type="date" name="start_date" id="start_date" value="{{ request('start_date') }}" 
+                    <input type="date" name="start_date" id="start_date" value="{{ request('start_date', now()->startOfMonth()->format('Y-m-d')) }}" 
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
 
                 <div>
                     <label for="end_date" class="block text-sm font-medium text-gray-700">Data Final</label>
-                    <input type="date" name="end_date" id="end_date" value="{{ request('end_date') }}"
+                    <input type="date" name="end_date" id="end_date" value="{{ request('end_date', now()->endOfMonth()->format('Y-m-d')) }}"
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
+
+                @if(isset($accounts) && $accounts->isNotEmpty())
+                <div class="md:col-span-3">
+                    <label for="account_id" class="block text-sm font-medium text-gray-700">Conta (opcional)</label>
+                    <select name="account_id" id="account_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">Todas as contas</option>
+                        @foreach($accounts as $account)
+                            <option value="{{ $account->id }}" {{ request('account_id') == $account->id ? 'selected' : '' }}>
+                                {{ $account->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
             </div>
 
             <div class="flex justify-end space-x-3">
@@ -146,11 +161,11 @@
                                                 </span>
                                             </div>
                                             <div class="w-full bg-gray-200 rounded-full h-2">
-                                                <div class="bg-green-600 h-2 rounded-full" style="width: {{ $category['percentage'] }}%"></div>
+                                                <div class="bg-green-600 h-2 rounded-full" style="width: {{ isset($category['percentage']) ? $category['percentage'] : 0 }}%"></div>
                                             </div>
                                             <div class="flex justify-between items-center mt-1">
                                                 <span class="text-xs text-gray-500">{{ $category['count'] }} transações</span>
-                                                <span class="text-xs text-gray-500">{{ number_format($category['percentage'], 1) }}%</span>
+                                                <span class="text-xs text-gray-500">{{ isset($category['percentage']) ? number_format($category['percentage'], 1) : '0.0' }}%</span>
                                             </div>
                                         </div>
                                     @endforeach
@@ -171,11 +186,11 @@
                                                 </span>
                                             </div>
                                             <div class="w-full bg-gray-200 rounded-full h-2">
-                                                <div class="bg-red-600 h-2 rounded-full" style="width: {{ $category['percentage'] }}%"></div>
+                                                <div class="bg-red-600 h-2 rounded-full" style="width: {{ isset($category['percentage']) ? $category['percentage'] : 0 }}%"></div>
                                             </div>
                                             <div class="flex justify-between items-center mt-1">
                                                 <span class="text-xs text-gray-500">{{ $category['count'] }} transações</span>
-                                                <span class="text-xs text-gray-500">{{ number_format($category['percentage'], 1) }}%</span>
+                                                <span class="text-xs text-gray-500">{{ isset($category['percentage']) ? number_format($category['percentage'], 1) : '0.0' }}%</span>
                                             </div>
                                         </div>
                                     @endforeach
@@ -353,4 +368,46 @@
         </div>
     @endif
 </div>
-@endsection 
+@endsection
+
+@push('scripts')
+<script>
+function handleSubmit(e) {
+    e.preventDefault();
+    
+    console.log('Form submitted');
+    const form = document.getElementById('reportForm');
+    console.log('Action:', form.action);
+    console.log('Method:', form.method);
+    
+    const formData = new FormData(form);
+    const params = new URLSearchParams();
+    
+    for (let [key, value] of formData.entries()) {
+        console.log(key + ': ' + value);
+        params.append(key, value);
+    }
+
+    // Construir a URL com os parâmetros
+    const url = form.action + '?' + params.toString();
+    console.log('Redirecting to:', url);
+    
+    // Redirecionar para a URL construída
+    window.location.href = url;
+    
+    return false;
+}
+
+// Adicionar log quando a página carrega
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded');
+    console.log('Current URL:', window.location.href);
+    const form = document.getElementById('reportForm');
+    console.log('Form found:', !!form);
+    if (form) {
+        console.log('Form action:', form.action);
+        console.log('Form method:', form.method);
+    }
+});
+</script>
+@endpush 

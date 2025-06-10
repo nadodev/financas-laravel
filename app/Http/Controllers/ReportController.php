@@ -16,23 +16,72 @@ use App\Exports\CategoriesExport;
 use App\Exports\GoalsExport;
 use App\Exports\AccountsExport;
 use App\Exports\ReportExport;
+use App\Exports\IncomeExpenseExport;
 
 class ReportController extends Controller
 {
-    public function index()
+    public function __construct()
     {
+        $this->middleware('auth');
+        \Log::info('ReportController constructed');
+    }
+
+    public function index(Request $request)
+    {
+        \Log::info('ReportController@index called', [
+            'request' => $request->all(),
+            'user' => auth()->check() ? auth()->id() : 'not authenticated',
+            'url' => $request->fullUrl()
+        ]);
+        
+        if (!auth()->check()) {
+            \Log::warning('User not authenticated');
+            return redirect()->route('login');
+        }
+        
         $accounts = Account::where('user_id', auth()->id())->get();
+        
+        if ($request->has('report_type')) {
+            \Log::info('Redirecting to show method', [
+                'report_type' => $request->report_type
+            ]);
+            return $this->show($request->report_type, $request);
+        }
+
         return view('reports.index', compact('accounts'));
     }
 
     public function show($type, Request $request)
     {
+        \Log::info('ReportController@show called', [
+            'type' => $type,
+            'request' => $request->all()
+        ]);
+
+        // Se as datas não forem fornecidas, usar o mês atual
+        if (!$request->filled('start_date')) {
+            $request->merge(['start_date' => now()->startOfMonth()->format('Y-m-d')]);
+        }
+        if (!$request->filled('end_date')) {
+            $request->merge(['end_date' => now()->endOfMonth()->format('Y-m-d')]);
+        }
+
+        // Para relatório de categorias, definir tipo padrão como 'all'
+        if ($type === 'categories' && !$request->filled('type')) {
+            $request->merge(['type' => 'all']);
+        }
+
         $accounts = Account::where('user_id', auth()->id())->get();
         $method = 'report' . str_replace(' ', '', ucwords(str_replace('-', ' ', $type)));
+        
         if (method_exists($this, $method)) {
             $data = $this->$method($request);
-            return view('reports.index', array_merge($data, ['accounts' => $accounts]));
+            return view('reports.index', array_merge($data, [
+                'accounts' => $accounts,
+                'reportType' => $type
+            ]));
         }
+        
         abort(404);
     }
 
@@ -55,7 +104,10 @@ class ReportController extends Controller
 
         return match ($format) {
             'pdf' => PDF::loadView("reports.pdf.{$type}", $data)->download("{$filename}.pdf"),
-            'xlsx' => Excel::download(new ReportExport($data), "{$filename}.xlsx"),
+            'xlsx' => match ($type) {
+                'income-expense' => Excel::download(new IncomeExpenseExport($data), "{$filename}.xlsx"),
+                default => Excel::download(new ReportExport($data), "{$filename}.xlsx"),
+            },
             default => throw new \InvalidArgumentException('Formato de exportação inválido')
         };
     }

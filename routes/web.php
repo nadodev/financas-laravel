@@ -65,11 +65,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/credit-cards/invoices/{invoice}/pay', [CreditCardController::class, 'payInvoice'])->name('credit-cards.invoices.pay');
 
     // Reports
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/{type}', [ReportController::class, 'show'])->name('reports.show');
-    Route::get('/reports/{type}/export/{format}', [ReportController::class, 'export'])->name('reports.export');
-    Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
-    Route::get('/reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [ReportController::class, 'index'])->name('index');
+        Route::get('/export-pdf', [ReportController::class, 'exportPdf'])->name('export-pdf');
+        Route::get('/export-excel', [ReportController::class, 'exportExcel'])->name('export-excel');
+        Route::get('/{type}/export/{format}', [ReportController::class, 'export'])->name('export');
+        Route::get('/{type}', [ReportController::class, 'show'])->name('show');
+    });
 
     Route::resource('budgets', BudgetController::class);
 
