@@ -93,7 +93,6 @@ class DashboardController extends Controller
             ]);
         }
 
-        // Transações recentes do mês selecionado
         $recentTransactions = Transaction::with('category')
             ->where('user_id', auth()->id())
             ->whereBetween('date', [$startOfMonth, $endOfMonth])
@@ -101,21 +100,18 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Objetivos financeiros em andamento
         $activeGoals = FinancialGoal::where('user_id', auth()->id())
             ->where('status', 'in_progress')
             ->orderBy('target_date', 'asc')
             ->take(3)
             ->get();
 
-        // Objetivos financeiros próximos do vencimento (próximos 30 dias)
         $upcomingGoals = FinancialGoal::where('user_id', auth()->id())
             ->where('status', 'in_progress')
             ->where('target_date', '<=', now()->addDays(30))
             ->orderBy('target_date', 'asc')
             ->get();
 
-        // Orçamentos do mês atual
         $budgets = Budget::where('user_id', auth()->id())
             ->where(function($query) use ($startOfMonth) {
                 $query->where('end_date', '>=', $startOfMonth)
@@ -124,7 +120,6 @@ class DashboardController extends Controller
             ->with(['category'])
             ->get();
 
-        // Calcular o progresso dos orçamentos
         foreach ($budgets as $budget) {
             $spent = Transaction::where('user_id', auth()->id())
                 ->where('type', 'expense')
@@ -137,13 +132,27 @@ class DashboardController extends Controller
             $budget->percentage = $budget->amount > 0 ? min(100, ($spent / $budget->amount) * 100) : 0;
         }
 
-        // Métricas de desempenho
         $performance = [
             'savings_rate' => $monthlyIncome > 0 ? ($monthlySavings / $monthlyIncome) * 100 : 0,
             'expense_income_ratio' => $monthlyIncome > 0 ? ($monthlyExpenses / $monthlyIncome) * 100 : 0,
             'budget_adherence' => $this->calculateBudgetAdherence($budgets),
             'goals_progress' => $this->calculateGoalsProgress($activeGoals),
         ];
+
+        $vencidas = Transaction::where('user_id', auth()->id())
+            ->where('type', 'expense')
+            ->whereDate('date', '<', now()->format('Y-m-d'))
+            ->where('status', 'pending');
+            
+        $overdueTransactions = $vencidas->count();
+
+
+        $transacoesVenceHoje = Transaction::where('user_id', auth()->id())
+            ->where('type', 'expense')
+            ->whereDate('date', now())
+            ->where('status', 'pending')
+            ->count();
+
 
         return view('dashboard.index', compact(
             'totalBalance',
@@ -160,7 +169,9 @@ class DashboardController extends Controller
             'activeGoals',
             'upcomingGoals',
             'budgets',
-            'performance'
+            'performance',
+            'overdueTransactions',
+            'transacoesVenceHoje'
         ));
     }
 

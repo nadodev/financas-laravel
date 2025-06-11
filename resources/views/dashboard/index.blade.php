@@ -40,9 +40,65 @@
         </div>
         <!-- Performance Metrics -->
         @if($showAll || in_array('performance_metrics', $visibleSections))
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Taxa de Economia -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Transações Atrasadas -->
             <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+                <div class="flex items-center justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <p class="text-sm font-medium text-gray-600">Transações Atrasadas</p>
+                            <div class="tooltip" title="Transações pendentes com data de vencimento ultrapassada">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="text-3xl font-bold text-red-600">
+                            {{ $overdueTransactions ?? 0 }}
+                        </p>
+                        <div class="flex items-center space-x-1">
+                            <a href="{{ route('transactions.overdue') }}" class="text-sm text-red-600 hover:text-red-700 font-medium">
+                                Ver detalhes →
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-red-100 rounded-full">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+                <div class="flex items-center justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <p class="text-sm font-medium text-gray-600">Vencendo Hoje</p>
+                            <div class="tooltip" title="Transações pendentes com data de vencimento ultrapassada">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="text-3xl font-bold text-orange-600">
+                            {{ $transacoesVenceHoje ?? 0 }}
+                        </p>
+                        <div class="flex items-center space-x-1">
+                            <a href="{{ route('transactions.overdue') }}" class="text-sm text-orange-600 hover:text-orange-700 font-medium">
+                                Ver detalhes →
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-orange-100 rounded-full">
+                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <!-- Taxa de Economia -->
+            <!-- <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
                 <div class="flex items-center justify-between">
                     <div class="space-y-2">
                         <div class="flex items-center space-x-2">
@@ -73,7 +129,7 @@
                         </svg>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             <!-- Relação Despesa/Renda -->
             <div class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow duration-200">

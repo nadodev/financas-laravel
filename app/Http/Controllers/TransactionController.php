@@ -237,7 +237,6 @@ class TransactionController extends Controller
                     // Atualiza a transação pai
                     $transaction->update($data);
 
-                    // Recria as recorrências com os novos parâmetros
                     $this->createRecurringTransactions($transaction);
 
                     DB::commit();
@@ -246,7 +245,6 @@ class TransactionController extends Controller
                 }
             }
 
-            // Se for uma transação recorrente pai ou filha e pediu para atualizar todas
             if (($transaction->is_recurring_parent || $transaction->is_recurring_child) && $request->has('update_all_recurrences')) {
                 $updateData = [
                     'description' => $data['description'],
@@ -257,38 +255,30 @@ class TransactionController extends Controller
                 ];
 
                 if ($transaction->is_recurring_parent) {
-                    // Atualiza todas as recorrências
                     $transaction->allRecurrences()->update($updateData);
                 } else {
-                    // Se for uma transação filha, atualiza o pai e todos os irmãos
                     $parent = $transaction->parent;
                     $parent->update($updateData);
                     $parent->allRecurrences()->update($updateData);
                 }
             }
 
-            // Processa o anexo
             if ($request->has('remove_attachment') && $request->remove_attachment == '1') {
-                // Remove o anexo antigo
                 if ($transaction->attachment) {
                     Storage::disk('public')->delete($transaction->attachment);
                     $data['attachment'] = null;
                 }
             } elseif ($request->hasFile('attachment')) {
-                // Remove o anexo antigo se existir
                 if ($transaction->attachment) {
                     Storage::disk('public')->delete($transaction->attachment);
                 }
 
-                // Salva o novo anexo
                 $path = $request->file('attachment')->store('attachments', 'public');
                 $data['attachment'] = $path;
             }
 
-            // Converte o valor para float
             $data['amount'] = (float) str_replace(['.', ','], ['', '.'], $data['amount']);
 
-            // Se mudou o status para pago, verifica o saldo
             if ($data['type'] === 'expense' && $data['status'] === 'paid' && $transaction->status !== 'paid') {
                 $account = Account::findOrFail($data['account_id']);
                 if ($account->balance < $data['amount']) {
@@ -296,16 +286,13 @@ class TransactionController extends Controller
                 }
             }
 
-            // Atualiza a transação
             $transaction->update($data);
 
-            // Atualiza o saldo da conta se necessário
             if ($data['status'] !== $transaction->getOriginal('status') || 
                 $data['amount'] !== $transaction->getOriginal('amount') ||
                 $data['type'] !== $transaction->getOriginal('type') ||
                 $data['account_id'] !== $transaction->getOriginal('account_id')) {
                 
-                // Reverte a transação antiga se estava paga
                 if ($transaction->getOriginal('status') === 'paid') {
                     $oldAccount = Account::findOrFail($transaction->getOriginal('account_id'));
                     if ($transaction->getOriginal('type') === 'income') {
@@ -316,7 +303,6 @@ class TransactionController extends Controller
                     $oldAccount->save();
                 }
 
-                // Aplica a nova transação se estiver paga
                 if ($data['status'] === 'paid') {
                     $newAccount = Account::findOrFail($data['account_id']);
                     if ($data['type'] === 'income') {
@@ -335,7 +321,6 @@ class TransactionController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             
-            // Se houve upload de arquivo novo, remove-o em caso de erro
             if (isset($data['attachment']) && $data['attachment'] !== $transaction->getOriginal('attachment')) {
                 Storage::disk('public')->delete($data['attachment']);
             }
@@ -350,108 +335,77 @@ class TransactionController extends Controller
     public function destroy(Transaction $transaction)
     {
         $this->authorize('delete', $transaction);
-        
-        try {
-            DB::beginTransaction();
-
-            // Se a transação estava paga, reverte o saldo da conta
-            if ($transaction->status === 'paid') {
-                $account = $transaction->account;
-                if ($transaction->type === 'income') {
-                    $account->balance -= $transaction->amount;
-                } else {
-                    $account->balance += $transaction->amount;
-                }
-                $account->save();
-            }
-
-            // Remove o anexo se existir
-            if ($transaction->attachment) {
-                Storage::disk('public')->delete($transaction->attachment);
-            }
-        
         $transaction->delete();
+        return redirect()->route('transactions.index')->with('success', 'Transação excluída com sucesso!');
+    }
 
-            DB::commit();
+    public function overdue()
+    {
 
-            return redirect()->route('transactions.index')->with('success', 'Transação excluída com sucesso!');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Erro ao excluir transação: ' . $e->getMessage());
-        }
+        $transactions = Transaction::with('category')
+            ->where('user_id', auth()->id())
+            ->where('type', 'expense')
+           
+            ->where('status', 'pending')
+            ->orderBy('date', 'asc')
+            ->get();
+
+
+        return view('transactions.overdue', compact('transactions'));
     }
 
     public function pay(Transaction $transaction)
     {
+        $this->authorize('update', $transaction);
+        
         try {
             DB::beginTransaction();
-
-            // Verifica se a transação já está paga
-            if ($transaction->status === 'paid') {
-                throw new \Exception('Esta transação já está paga.');
-            }
-
-            // Verifica se há saldo suficiente para despesas
-            if ($transaction->type === 'expense') {
-                $account = $transaction->account;
-                if ($account->balance < $transaction->amount) {
-                    throw new \Exception('Saldo insuficiente para pagar esta despesa.');
-                }
-            }
-
-            // Atualiza o status da transação
+            
             $transaction->status = 'paid';
             $transaction->save();
-
-            // Atualiza o saldo da conta
-            $account = $transaction->account;
-            if ($transaction->type === 'income') {
-                $account->balance += $transaction->amount;
-            } else {
-                $account->balance -= $transaction->amount;
-            }
-            $account->save();
-
+            
             DB::commit();
-
-            return redirect()
-                ->back()
-                ->with('success', 'Transação paga com sucesso!');
-
+            
+            return redirect()->back()->with('success', 'Transação marcada como paga com sucesso!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()
-                ->back()
-                ->with('error', 'Erro ao pagar transação: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Erro ao marcar transação como paga: ' . $e->getMessage());
         }
     }
 
     public function checkOverdue()
     {
-        $overdueTransactions = Transaction::where('user_id', auth()->id())
+        $count = Transaction::where('user_id', auth()->id())
+            ->where('type', 'expense')
+            ->whereDate('due_date', '<', now()->format('Y-m-d'))
             ->where('status', 'pending')
-            ->where('date', '<', now()->startOfDay())
-            ->get();
+            ->count();
 
-        foreach ($overdueTransactions as $transaction) {
-            // Notifica o usuário sobre transações vencidas
-            auth()->user()->notify(new TransactionOverdue($transaction));
-        }
-
-        return response()->json(['message' => 'Verificação de transações vencidas realizada com sucesso.']);
+        return response()->json(['count' => $count]);
     }
 
     public function removeAttachment(Transaction $transaction, $index)
     {
         $this->authorize('update', $transaction);
-
+        
         try {
-            if ($transaction->removeAttachment($index)) {
-                return response()->json(['success' => true]);
+            $attachments = $transaction->attachments ?? [];
+            
+            if (isset($attachments[$index])) {
+                Storage::disk('public')->delete($attachments[$index]);
+                
+                unset($attachments[$index]);
+                $attachments = array_values($attachments);
+                
+                $transaction->attachments = $attachments;
+                $transaction->save();
+                
+                return response()->json(['message' => 'Anexo removido com sucesso']);
             }
-            return response()->json(['success' => false, 'message' => 'Anexo não encontrado'], 404);
+            
+            return response()->json(['message' => 'Anexo não encontrado'], 404);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Erro ao remover anexo: ' . $e->getMessage()], 500);
         }
     }
 
@@ -464,7 +418,7 @@ class TransactionController extends Controller
         $currentDate = Carbon::parse($transaction->date);
         $endDate = $transaction->recurrence_end_date 
             ? Carbon::parse($transaction->recurrence_end_date)
-            : $currentDate->copy()->addYear(); // Se não tiver data fim, cria por 1 ano
+            : $currentDate->copy()->addYear(); 
 
         while ($currentDate->lt($endDate)) {
             $currentDate = $currentDate->addDays($transaction->recurrence_interval);
@@ -488,5 +442,9 @@ class TransactionController extends Controller
                 'next_recurrence_date' => null,
             ]);
         }
+    }
+
+    private function validateTransaction(Request $request)
+    {
     }
 } 

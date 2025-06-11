@@ -19,7 +19,8 @@ class DashboardSettingController extends Controller
             'budgets' => 'Orçamentos',
             'expenses_by_category' => 'Gráfico de Despesas por Categoria',
             'cash_flow' => 'Gráfico de Fluxo de Caixa',
-            'recent_transactions' => 'Transações Recentes'
+            'recent_transactions' => 'Transações Recentes',
+            'overdue_transactions' => 'Transações Atrasadas'
         ];
 
         return view('settings.dashboard', compact('settings', 'availableSections'));
