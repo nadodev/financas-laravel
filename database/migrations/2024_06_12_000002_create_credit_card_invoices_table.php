@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('credit_card_id')->constrained()->onDelete('cascade');
             $table->integer('reference_month');
-            $table->integer('year');
             $table->integer('reference_year');
             $table->date('closing_date');
             $table->date('due_date');
