@@ -17,13 +17,42 @@
     @yield('styles')
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="font-sans antialiased" x-data="{ sidebarOpen: window.innerWidth >= 768 }">
+<body class="font-sans antialiased" 
+    x-data="{ 
+        sidebarOpen: window.innerWidth >= 1024,
+        handleResize() {
+            if (window.innerWidth >= 1024) {
+                this.sidebarOpen = true;
+            }
+        }
+    }" 
+    x-init="window.addEventListener('resize', handleResize)"
+>
     <div class="min-h-screen bg-gray-100">
+        <!-- Mobile Overlay -->
+        <div
+            x-show="sidebarOpen"
+            class="fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity lg:hidden"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @click="sidebarOpen = false"
+        ></div>
+
         <!-- Sidebar -->
         @include('layouts.sidebar')
+
         <!-- Main Content -->
-         
-        <div class="pl-0 lg:pl-[17rem]" :class="{ 'pl-0': !sidebarOpen }">
+        <div 
+            class="transition-all duration-300" 
+            :class="{
+                'lg:pl-[17rem]': sidebarOpen,
+                'lg:pl-0': !sidebarOpen
+            }"
+        >
             <!-- Top Navigation -->
             <div class="bg-white shadow-sm">
                 <div class="flex justify-between items-center px-4 py-4 sm:px-6 lg:px-8">
@@ -44,14 +73,10 @@
                         </div>
                     </div>
                 </div>
-                
             </div>
-            <div class="">
-           
-    </div>
+
             <!-- Page Content -->
-            <main class="py-6 pl-4" >
-    
+            <main class="py-6 px-4">
                 @if (session('success'))
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
                         <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">

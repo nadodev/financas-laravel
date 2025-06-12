@@ -21,7 +21,11 @@ use App\Http\Controllers\ExpenseAnalyticsController;
 use App\Http\Controllers\PushSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [LandingPageController::class, 'index'])->name('home');
+// Route::get('/', [LandingPageController::class, 'index'])->name('home');
+Route::get('/', function () {
+    //redireciona para o login
+    return redirect()->route('login');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

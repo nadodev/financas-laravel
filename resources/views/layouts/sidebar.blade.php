@@ -1,8 +1,9 @@
 <div
   id="sidebar"
-  class="fixed inset-y-0 left-0 z-30 w-[17rem] bg-white border-r border-gray-200 transform transition-transform duration-300 hidden lg:block"
-  :class="{ '-translate-x-full': !sidebarOpen }"
->           <div class="flex items-center justify-center h-16 border-b border-gray-200 bg-white shadow-sm px-4">
+  class="fixed inset-y-0 left-0 z-30 w-[17rem] bg-white border-r border-gray-200 transform transition-all duration-300 ease-in-out"
+  :class="{ '-translate-x-full': !sidebarOpen, 'translate-x-0': sidebarOpen }"
+>
+  <div class="flex items-center justify-between h-16 border-b border-gray-200 bg-white shadow-sm px-4">
     <h1 class="text-2xl font-bold text-gray-800 tracking-tight flex items-center space-x-2">
       <span class="text-green-500 text-3xl">💰</span>
       <span>
@@ -10,6 +11,12 @@
         <span class="text-green-600 font-extrabold">TECH</span>
       </span>
     </h1>
+    <button 
+      @click="sidebarOpen = false"
+      class="lg:hidden text-gray-500 hover:text-gray-600 focus:outline-none"
+    >
+      <i class="fas fa-times"></i>
+    </button>
   </div>
             <nav class="mt-5 px-2">
                 <a href="{{ route('dashboard') }}" class="group flex items-center px-2 py-2 text-base font-medium rounded-md {{ request()->routeIs('dashboard') ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
