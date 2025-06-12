@@ -13,8 +13,8 @@ class CreditCardInvoice extends Model
 
     protected $fillable = [
         'credit_card_id',
-        'month',
-        'year',
+        'reference_month',
+        'reference_year',
         'closing_date',
         'due_date',
         'amount',
@@ -29,7 +29,7 @@ class CreditCardInvoice extends Model
 
     // Status disponíveis para a fatura
     public static $statuses = [
-        'open' => 'Em Aberto',
+        'open' => 'Aberta',
         'closed' => 'Fechada',
         'paid' => 'Paga',
         'overdue' => 'Vencida',
@@ -66,8 +66,8 @@ class CreditCardInvoice extends Model
         $nextDueDate = $this->due_date->copy()->addMonth();
 
         $this->creditCard->invoices()->create([
-            'month' => $nextClosingDate->month,
-            'year' => $nextClosingDate->year,
+            'reference_month' => $nextClosingDate->month,
+            'reference_year' => $nextClosingDate->year,
             'closing_date' => $nextClosingDate,
             'due_date' => $nextDueDate,
             'amount' => 0,

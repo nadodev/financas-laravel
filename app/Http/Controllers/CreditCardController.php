@@ -9,53 +9,82 @@ use Illuminate\Http\Request;
 
 class CreditCardController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index()
     {
-        $creditCards = auth()->user()->creditCards()->with(['currentInvoice'])->get();
+        $user = auth()->user();
+        $account = $user->accounts()->first();
+
+        if (!$account) {
+            // Se o usuário não tem uma conta, cria uma padrão
+            $account = $user->accounts()->create([
+                'name' => 'Conta Principal',
+                'type' => 'checking',
+                'balance' => 0,
+            ]);
+        }
+
+        $creditCards = $account->creditCards;
         return view('credit-cards.index', compact('creditCards'));
     }
 
     public function create()
     {
-        $accounts = Account::where('user_id', auth()->id())
-            ->orderBy('name')
-            ->get();
-        $brands = CreditCard::$brands;
+        $accounts = auth()->user()->accounts;
+        
+        if ($accounts->isEmpty()) {
+            return redirect()->route('accounts.create')
+                ->with('error', 'Você precisa criar uma conta antes de adicionar um cartão de crédito.');
+        }
 
-        return view('credit-cards.create', compact('accounts', 'brands'));
+        return view('credit-cards.create', [
+            'brands' => CreditCard::$brands,
+            'accounts' => $accounts
+        ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|max:255',
-            'number' => 'required|max:255',
-            'expiration_date' => 'required|date',
+            'name' => 'required|string|max:255',
+            'number' => 'required|string|max:19',
+            'brand' => 'required|string|in:' . implode(',', array_keys(CreditCard::$brands)),
             'credit_limit' => 'required|numeric|min:0',
-            'closing_day' => 'required|integer|min:1|max:31',
-            'due_day' => 'required|integer|min:1|max:31',
-            'account_id' => 'required|exists:accounts,id',
-            'brand' => 'required|in:' . implode(',', array_keys(CreditCard::$brands)),
+            'closing_day' => 'required|integer|between:1,31',
+            'due_day' => 'required|integer|between:1,31',
+            'account_id' => 'required|exists:accounts,id'
         ]);
 
+        // Verifica se a conta pertence ao usuário
+        $account = auth()->user()->accounts()->findOrFail($validated['account_id']);
+        
+        // Adiciona o user_id aos dados validados
         $validated['user_id'] = auth()->id();
-
-        CreditCard::create($validated);
+        
+        $creditCard = $account->creditCards()->create($validated);
 
         return redirect()->route('credit-cards.index')
-            ->with('success', 'Cartão de crédito criado com sucesso!');
+            ->with('success', 'Cartão de crédito cadastrado com sucesso!');
+    }
+
+    public function show(CreditCard $creditCard)
+    {
+        $this->authorize('view', $creditCard);
+        return view('credit-cards.show', compact('creditCard'));
     }
 
     public function edit(CreditCard $creditCard)
     {
         $this->authorize('update', $creditCard);
-
-        $accounts = Account::where('user_id', auth()->id())
-            ->orderBy('name')
-            ->get();
-        $brands = CreditCard::$brands;
-
-        return view('credit-cards.edit', compact('creditCard', 'accounts', 'brands'));
+        return view('credit-cards.edit', [
+            'creditCard' => $creditCard,
+            'brands' => CreditCard::$brands,
+            'accounts' => auth()->user()->accounts
+        ]);
     }
 
     public function update(Request $request, CreditCard $creditCard)
@@ -63,16 +92,16 @@ class CreditCardController extends Controller
         $this->authorize('update', $creditCard);
 
         $validated = $request->validate([
-            'name' => 'required|max:255',
-            'number' => 'required|max:255',
-            'expiration_date' => 'required|date',
+            'name' => 'required|string|max:255',
+            'brand' => 'required|string|in:' . implode(',', array_keys(CreditCard::$brands)),
             'credit_limit' => 'required|numeric|min:0',
-            'closing_day' => 'required|integer|min:1|max:31',
-            'due_day' => 'required|integer|min:1|max:31',
-            'account_id' => 'required|exists:accounts,id',
-            'brand' => 'required|in:' . implode(',', array_keys(CreditCard::$brands)),
+            'closing_day' => 'required|integer|between:1,31',
+            'due_day' => 'required|integer|between:1,31',
+            'account_id' => 'required|exists:accounts,id'
         ]);
 
+        // Verifica se a conta pertence ao usuário
+        $account = auth()->user()->accounts()->findOrFail($validated['account_id']);
         $creditCard->update($validated);
 
         return redirect()->route('credit-cards.index')
@@ -82,26 +111,37 @@ class CreditCardController extends Controller
     public function destroy(CreditCard $creditCard)
     {
         $this->authorize('delete', $creditCard);
-
-        // Verificar se existem transações vinculadas
-        if ($creditCard->transactions()->exists()) {
-            return redirect()->route('credit-cards.index')
-                ->with('error', 'Não é possível excluir um cartão que possui transações vinculadas.');
-        }
-
         $creditCard->delete();
 
         return redirect()->route('credit-cards.index')
             ->with('success', 'Cartão de crédito excluído com sucesso!');
     }
 
-    public function show(CreditCard $creditCard)
+    public function showConfirmPassword(CreditCard $creditCard)
     {
-        $invoices = $creditCard->invoices()
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $this->authorize('view', $creditCard);
+        return view('credit-cards.confirm-password', compact('creditCard'));
+    }
 
-        return view('credit-cards.show', compact('creditCard', 'invoices'));
+    public function confirmPassword(Request $request, CreditCard $creditCard)
+    {
+        $this->authorize('view', $creditCard);
+
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (!$creditCard->verifyPassword($request->password)) {
+            return back()->withErrors([
+                'password' => 'A senha informada está incorreta.',
+            ]);
+        }
+
+        $creditCard->markPasswordAsConfirmed();
+
+        return redirect()->intended(
+            route('credit-cards.show', $creditCard)
+        );
     }
 
     public function closeInvoice(CreditCardInvoice $invoice)
@@ -138,5 +178,20 @@ class CreditCardController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
+    }
+
+    public function invoices(CreditCard $creditCard)
+    {
+        $this->authorize('view', $creditCard);
+        
+        $invoices = $creditCard->invoices()
+            ->orderBy('reference_year', 'desc')
+            ->orderBy('reference_month', 'desc')
+            ->paginate(12);
+
+        return view('credit-cards.invoices', [
+            'creditCard' => $creditCard,
+            'invoices' => $invoices
+        ]);
     }
 } 
