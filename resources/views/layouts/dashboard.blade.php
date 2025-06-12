@@ -65,11 +65,63 @@
                         </h2>
                     </div>
                     <div class="flex items-center">
-                        <div class="relative">
-                            <button type="button" class="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none" id="userMenuButton">
+                        <div class="relative" x-data="{ open: false }">
+                            <button type="button" 
+                                    @click="open = !open" 
+                                    @keydown.escape.window="open = false"
+                                    @click.away="open = false"
+                                    class="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 focus:outline-none" 
+                                    id="userMenuButton"
+                                    aria-expanded="false"
+                                    aria-haspopup="true">
                                 <span>{{ Auth::user()->name }}</span>
-                                <i class="fas fa-chevron-down ml-2"></i>
+                                <i class="fas fa-chevron-down ml-2 transition-transform duration-200" :class="{ 'transform rotate-180': open }"></i>
                             </button>
+
+                            <!-- Dropdown menu -->
+                            <div x-show="open"
+                                 x-transition:enter="transition ease-out duration-100"
+                                 x-transition:enter-start="transform opacity-0 scale-95"
+                                 x-transition:enter-end="transform opacity-100 scale-100"
+                                 x-transition:leave="transition ease-in duration-75"
+                                 x-transition:leave-start="transform opacity-100 scale-100"
+                                 x-transition:leave-end="transform opacity-0 scale-95"
+                                 class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                 role="menu"
+                                 aria-orientation="vertical"
+                                 aria-labelledby="userMenuButton"
+                                 tabindex="-1">
+                                
+                                <a href="{{ route('profile.edit') }}" 
+                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" 
+                                   role="menuitem" 
+                                   tabindex="-1">
+                                    <i class="fas fa-user mr-2"></i>
+                                    Perfil
+                                </a>
+                                
+                                <a href="{{ route('profile.edit') }}#settings" 
+                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" 
+                                   role="menuitem" 
+                                   tabindex="-1">
+                                    <i class="fas fa-cog mr-2"></i>
+                                    Configurações
+                                </a>
+                                
+                                <div class="border-t border-gray-100"></div>
+                                
+                                <!-- Botão de Logout -->
+                                <form method="POST" action="{{ route('logout') }}" class="block">
+                                    @csrf
+                                    <button type="submit"
+                                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            role="menuitem"
+                                            tabindex="-1">
+                                        <i class="fas fa-sign-out-alt mr-2"></i>
+                                        Sair
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
