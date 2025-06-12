@@ -45,11 +45,7 @@
 
             <div>
                 <label for="icon" class="block text-sm font-medium text-gray-700">Ícone</label>
-                <input type="text" name="icon" id="icon" required
-                       class="mt-1 block w-full rounded-md border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="fas fa-home"
-                       value="{{ old('icon', $category->icon) }}">
-                <p class="mt-1 text-sm text-gray-500">Use classes do Font Awesome (ex: fas fa-home)</p>
+                <x-icon-selector name="icon" :value="old('icon', $category->icon)" required />
                 @error('icon')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
