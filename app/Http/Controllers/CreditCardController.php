@@ -74,7 +74,14 @@ class CreditCardController extends Controller
     public function show(CreditCard $creditCard)
     {
         $this->authorize('view', $creditCard);
-        return view('credit-cards.show', compact('creditCard'));
+        
+        // Carrega as faturas do cartão
+        $invoices = $creditCard->invoices()
+            ->orderBy('reference_year', 'desc')
+            ->orderBy('reference_month', 'desc')
+            ->paginate(10);
+        
+        return view('credit-cards.show', compact('creditCard', 'invoices'));
     }
 
     public function edit(CreditCard $creditCard)
@@ -108,13 +115,38 @@ class CreditCardController extends Controller
             ->with('success', 'Cartão de crédito atualizado com sucesso!');
     }
 
-    public function destroy(CreditCard $creditCard)
+    public function showInvoices(CreditCard $creditCard)
     {
-        $this->authorize('delete', $creditCard);
-        $creditCard->delete();
+        $this->authorize('view', $creditCard);
+        
+        $invoices = $creditCard->invoices()
+            ->orderBy('reference_year', 'desc')
+            ->orderBy('reference_month', 'desc')
+            ->paginate(10);
+            
+        return view('credit-cards.invoices', compact('creditCard', 'invoices'));
+    }
 
-        return redirect()->route('credit-cards.index')
-            ->with('success', 'Cartão de crédito excluído com sucesso!');
+    public function closeInvoice(CreditCard $creditCard)
+    {
+        $this->authorize('update', $creditCard);
+        
+        // Lógica para fechar a fatura atual
+        $currentInvoice = $creditCard->getCurrentInvoice();
+        $currentInvoice->close();
+        
+        return redirect()->back()->with('success', 'Fatura fechada com sucesso!');
+    }
+
+    public function payInvoice(CreditCard $creditCard)
+    {
+        $this->authorize('update', $creditCard);
+        
+        // Lógica para pagar a fatura atual
+        $currentInvoice = $creditCard->getCurrentInvoice();
+        $currentInvoice->pay();
+        
+        return redirect()->back()->with('success', 'Fatura paga com sucesso!');
     }
 
     public function showConfirmPassword(CreditCard $creditCard)
@@ -142,56 +174,5 @@ class CreditCardController extends Controller
         return redirect()->intended(
             route('credit-cards.show', $creditCard)
         );
-    }
-
-    public function closeInvoice(CreditCardInvoice $invoice)
-    {
-        try {
-            if ($invoice->status !== 'open') {
-                throw new \Exception('Apenas faturas abertas podem ser fechadas.');
-            }
-
-            $invoice->markAsClosed();
-
-            return redirect()->back()->with('success', 'Fatura fechada com sucesso!');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
-        }
-    }
-
-    public function payInvoice(Request $request, CreditCardInvoice $invoice)
-    {
-        try {
-            $request->validate([
-                'account_id' => 'required|exists:accounts,id'
-            ]);
-
-            $account = Account::findOrFail($request->account_id);
-            
-            if ($account->balance < $invoice->total_amount) {
-                throw new \Exception('Saldo insuficiente na conta selecionada.');
-            }
-
-            $invoice->markAsPaid($account);
-
-            return redirect()->back()->with('success', 'Fatura paga com sucesso!');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
-        }
-    }
-
-    public function invoices(CreditCard $creditCard)
-    {
-        $this->authorize('view', $creditCard);
-        
-        $invoices = $creditCard->invoices()
-            ->orderBy('reference_year', 'desc')
-            ->orderBy('reference_month', 'desc')
-            ->paginate(12);
-
-        return view('credit-cards.invoices', [
-            'creditCard' => $creditCard,
-            'invoices' => $invoices
-        ]);
     }
 } 

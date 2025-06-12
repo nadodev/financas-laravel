@@ -62,6 +62,42 @@ class CreditCard extends Model
         return str_repeat('*', strlen($number) - 4) . substr($number, -4);
     }
 
+    // Método para obter a fatura atual
+    public function getCurrentInvoice()
+    {
+        $now = Carbon::now();
+        
+        // Procura uma fatura aberta para o mês atual
+        $invoice = $this->invoices()
+            ->where('reference_month', $now->month)
+            ->where('reference_year', $now->year)
+            ->where('status', 'open')
+            ->first();
+            
+        // Se não encontrar, cria uma nova fatura
+        if (!$invoice) {
+            $closingDate = Carbon::create($now->year, $now->month, $this->closing_day);
+            $dueDate = Carbon::create($now->year, $now->month, $this->due_day);
+            
+            // Se o dia de fechamento já passou, a fatura é para o próximo mês
+            if ($now->day > $this->closing_day) {
+                $closingDate->addMonth();
+                $dueDate->addMonth();
+            }
+            
+            $invoice = $this->invoices()->create([
+                'reference_month' => $closingDate->month,
+                'reference_year' => $closingDate->year,
+                'closing_date' => $closingDate,
+                'due_date' => $dueDate,
+                'amount' => 0,
+                'status' => 'open'
+            ]);
+        }
+        
+        return $invoice;
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

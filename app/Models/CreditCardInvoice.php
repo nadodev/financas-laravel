@@ -51,15 +51,8 @@ class CreditCardInvoice extends Model
             throw new \Exception('Apenas faturas em aberto podem ser fechadas.');
         }
 
-        $this->amount = $this->transactions()->sum('amount');
         $this->status = 'closed';
         $this->save();
-
-        // Marca todas as transações da fatura como pagas
-        $this->transactions()->update([
-            'payment_status' => 'paid',
-            'payment_date' => Carbon::now()
-        ]);
 
         // Cria a próxima fatura
         $nextClosingDate = $this->closing_date->copy()->addMonth();
@@ -71,10 +64,18 @@ class CreditCardInvoice extends Model
             'closing_date' => $nextClosingDate,
             'due_date' => $nextDueDate,
             'amount' => 0,
-            'status' => 'open',
+            'status' => 'open'
         ]);
+    }
 
-        return $this;
+    public function pay()
+    {
+        if ($this->status !== 'closed') {
+            throw new \Exception('Apenas faturas fechadas podem ser pagas.');
+        }
+
+        $this->status = 'paid';
+        $this->save();
     }
 
     public function markAsClosed()

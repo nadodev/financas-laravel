@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Route;
 
 // Route::get('/', [LandingPageController::class, 'index'])->name('home');
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -73,12 +73,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/confirm-password', [ConfirmPasswordController::class, 'show'])
         ->name('password.confirm');
     Route::post('/confirm-password', [ConfirmPasswordController::class, 'confirm']);
-
-    // Grupo de rotas que requerem autenticação e confirmação de senha após login
-    Route::middleware(['auth', 'password.after_login'])->group(function () {
-        // Rotas do dashboard e outras que você quer proteger após o login
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    });
 
     // Rotas de cartões de crédito
     Route::middleware(['password.confirm'])->group(function () {
