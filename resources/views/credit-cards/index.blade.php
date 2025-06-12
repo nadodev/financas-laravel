@@ -1,25 +1,19 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="px-4 sm:px-6 lg:px-8 py-6">
+    <div class="px-4 sm:px-6 lg:px-8 py-6" x-data="{ hideValues: false }">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">Cartões de Crédito</h1>
-            <a href="{{ route('credit-cards.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                Novo Cartão
-            </a>
+            <div class="flex items-center space-x-4">
+                <label class="flex items-center">
+                    <input type="checkbox" x-model="hideValues" class="form-checkbox h-4 w-4 text-blue-600">
+                    <span class="ml-2 text-sm text-gray-600">Ocultar Valores</span>
+                </label>
+                <a href="{{ route('credit-cards.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                    Novo Cartão
+                </a>
+            </div>
         </div>
-
-        @if (session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline">{{ session('success') }}</span>
-            </div>
-        @endif
-
-        @if (session('error'))
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline">{{ session('error') }}</span>
-            </div>
-        @endif
 
        <div class="bg-white shadow rounded-lg overflow-hidden">
            <table class="min-w-full divide-y divide-gray-200">
@@ -33,27 +27,30 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                     </tr>
                 </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-200">
                     @forelse ($creditCards as $card)
                         <tr>
-                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <div class="text-sm leading-5 font-medium text-gray-900">{{ $card->name }}</div>
-                                <div class="text-sm leading-5 text-gray-500">**** **** **** {{ substr($card->number, -4) }}</div>
+                                <div class="text-sm leading-5 text-gray-500">{{ $card->masked_number }}</div>
                             </td>
-                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                                     {{ App\Models\CreditCard::$brands[$card->brand] }}
                                 </span>
                             </td>
-                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <div class="text-sm leading-5 text-gray-900">
-                                    R$ {{ number_format($card->credit_limit, 2, ',', '.') }}
+                                    <span x-show="!hideValues">R$ {{ number_format($card->credit_limit, 2, ',', '.') }}</span>
+                                    <span x-show="hideValues">R$ ●●●●●</span>
                                 </div>
-                                <div class="text-sm leading-5 {{ $card->getAvailableLimit() > 0 ? 'text-green-600' : 'text-red-600' }}">
-                                    Disponível: R$ {{ number_format($card->getAvailableLimit(), 2, ',', '.') }}
+                                <div class="text-sm leading-5" :class="{ 'text-green-600': {{ $card->getAvailableLimit() }} > 0, 'text-red-600': {{ $card->getAvailableLimit() }} <= 0 }">
+                                    Disponível: 
+                                    <span x-show="!hideValues">R$ {{ number_format($card->getAvailableLimit(), 2, ',', '.') }}</span>
+                                    <span x-show="hideValues">R$ ●●●●●</span>
                                 </div>
                             </td>
-                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <div class="text-sm leading-5 text-gray-900">
                                     Fecha dia {{ $card->closing_day }}
                                 </div>
@@ -61,7 +58,7 @@
                                     Vence dia {{ $card->due_day }}
                                 </div>
                             </td>
-                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <div class="text-sm leading-5 text-gray-900">{{ $card->account->name }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm leading-5 font-medium">

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('content')
 <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -26,11 +26,13 @@
                             <tr>
                                 <th scope="col"
                                     class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                                    Referência</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                     Vencimento</th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Valor
-                                </th>
-                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status
-                                </th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                    Valor</th>
+                                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                    Status</th>
                                 <th scope="col" class="relative py-3.5 pl-3 pr-4 sm:pr-6">
                                     <span class="sr-only">Ações</span>
                                 </th>
@@ -40,10 +42,13 @@
                             @foreach($invoices as $invoice)
                             <tr>
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                                    {{ $invoice->reference_month }}/{{ $invoice->reference_year }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                     {{ $invoice->due_date->format('d/m/Y') }}
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                    R$ {{ number_format($invoice->total_amount, 2, ',', '.') }}
+                                    R$ {{ number_format($invoice->amount, 2, ',', '.') }}
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                     @php
@@ -69,7 +74,7 @@
                                     class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                     <div class="flex justify-end space-x-2">
                                         @if($invoice->status === 'open')
-                                        <form action="{{ route('credit-cards.invoices.close', $invoice) }}" method="POST"
+                                        <form action="{{ route('credit-cards.close-invoice', $creditCard) }}" method="POST"
                                             class="inline">
                                             @csrf
                                             <button type="submit"
@@ -78,8 +83,12 @@
                                         @endif
 
                                         @if($invoice->status === 'closed')
-                                        <button type="button" onclick="openPaymentModal('{{ $invoice->id }}', '{{ number_format($invoice->total_amount, 2, ',', '.') }}')"
-                                            class="text-green-600 hover:text-green-900">Pagar</button>
+                                        <form action="{{ route('credit-cards.pay-invoice', $creditCard) }}" method="POST"
+                                            class="inline">
+                                            @csrf
+                                            <button type="submit"
+                                                class="text-green-600 hover:text-green-900">Pagar</button>
+                                        </form>
                                         @endif
                                     </div>
                                 </td>

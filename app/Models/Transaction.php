@@ -31,11 +31,14 @@ class Transaction extends Model
         'installment',
         'total_installments',
         'current_installment',
-        'is_recurring_parent'
+        'is_recurring_parent',
+        'credit_card_id',
+        'credit_card_invoice_id',
+        'notes',
     ];
 
     protected $casts = [
-        'amount' => 'float',
+        'amount' => 'decimal:2',
         'date' => 'date',
         'recurring' => 'boolean',
         'recurrence_interval' => 'integer',
@@ -44,16 +47,21 @@ class Transaction extends Model
         'installment' => 'boolean',
         'total_installments' => 'integer',
         'current_installment' => 'integer',
-        'is_recurring_parent' => 'boolean'
+        'is_recurring_parent' => 'boolean',
     ];
 
     protected $with = ['category', 'account'];
 
-    // Status disponíveis
+    public static $types = [
+        'income' => 'Receita',
+        'expense' => 'Despesa',
+        'transfer' => 'Transferência',
+    ];
+
     public static $statuses = [
         'pending' => 'Pendente',
-        'paid' => 'Pago',
-        'cancelled' => 'Cancelado',
+        'completed' => 'Concluída',
+        'cancelled' => 'Cancelada',
     ];
 
     public function category(): BelongsTo
@@ -140,6 +148,34 @@ class Transaction extends Model
         }
 
         return $nextDate;
+    }
+
+    public function creditCard(): BelongsTo
+    {
+        return $this->belongsTo(CreditCard::class);
+    }
+
+    public function creditCardInvoice(): BelongsTo
+    {
+        return $this->belongsTo(CreditCardInvoice::class);
+    }
+
+    // Escopo para filtrar transações por período
+    public function scopeInPeriod($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('date', [$startDate, $endDate]);
+    }
+
+    // Escopo para filtrar por tipo
+    public function scopeOfType($query, $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    // Escopo para filtrar por status
+    public function scopeWithStatus($query, $status)
+    {
+        return $query->where('status', $status);
     }
 
     protected static function boot()

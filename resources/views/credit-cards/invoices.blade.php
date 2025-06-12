@@ -1,108 +1,151 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-800">Faturas - {{ $creditCard->name }}</h1>
-                <p class="text-gray-600">
-                    Limite: R$ {{ number_format($creditCard->credit_limit, 2, ',', '.') }} |
-                    Disponível: R$ {{ number_format($creditCard->getAvailableLimit(), 2, ',', '.') }}
-                </p>
+<div class="py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Cabeçalho -->
+        <div class="mb-8">
+            <div class="sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Faturas do Cartão</h1>
+                    <p class="mt-2 text-sm text-gray-700">
+                        {{ $creditCard->name }} - {{ $creditCard->getMaskedNumberAttribute() }}
+                    </p>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <a href="{{ route('credit-cards.show', $creditCard) }}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                        </svg>
+                        Voltar ao Cartão
+                    </a>
+                </div>
             </div>
-            <a href="{{ route('credit-cards.current-invoice', $creditCard) }}" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                Fatura Atual
-            </a>
         </div>
 
-        @if (session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline">{{ session('success') }}</span>
-            </div>
-        @endif
+        <!-- Lista de Faturas -->
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul role="list" class="divide-y divide-gray-200">
+                @forelse ($invoices as $invoice)
+                    <li>
+                        <div class="px-4 py-4 sm:px-6">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center">
+                                        <!-- Ícone baseado no status -->
+                                        @if($invoice->status === 'paid')
+                                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                                                <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                        @elseif($invoice->status === 'closed')
+                                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                                                <svg class="h-6 w-6 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                        @else
+                                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                <svg class="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                            </div>
+                                        @endif
 
-        @if (session('error'))
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <span class="block sm:inline">{{ session('error') }}</span>
-            </div>
-        @endif
+                                        <div class="ml-4">
+                                            <h2 class="text-sm font-medium text-gray-900">
+                                                Fatura de {{ \Carbon\Carbon::createFromDate($invoice->reference_year, $invoice->reference_month, 1)->isoFormat('MMMM [de] YYYY') }}
+                                            </h2>
+                                            <div class="mt-1 flex items-center">
+                                                <span class="text-sm text-gray-500">
+                                                    Vencimento: {{ \Carbon\Carbon::createFromDate($invoice->reference_year, $invoice->reference_month, $creditCard->due_day)->format('d/m/Y') }}
+                                                </span>
+                                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                                    @if($invoice->status === 'paid') bg-green-100 text-green-800
+                                                    @elseif($invoice->status === 'closed') bg-yellow-100 text-yellow-800
+                                                    @else bg-blue-100 text-blue-800
+                                                    @endif">
+                                                    {{ __('credit-cards.invoice_status.' . $invoice->status) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ml-4 flex-shrink-0 flex items-center space-x-4">
+                                    <div class="flex flex-col items-end">
+                                        <span class="text-sm font-medium text-gray-900">
+                                            R$ {{ number_format($invoice->total_amount, 2, ',', '.') }}
+                                        </span>
+                                        <span class="text-xs text-gray-500">
+                                            {{ $invoice->transactions_count }} transações
+                                        </span>
+                                    </div>
 
-        <div class="bg-white shadow-md rounded my-6">
-            <table class="min-w-full">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="px-6 py-3 border-b border-gray-200 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Mês/Ano</th>
-                        <th class="px-6 py-3 border-b border-gray-200 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Fechamento</th>
-                        <th class="px-6 py-3 border-b border-gray-200 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Vencimento</th>
-                        <th class="px-6 py-3 border-b border-gray-200 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                        <th class="px-6 py-3 border-b border-gray-200 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 border-b border-gray-200 text-left text-xs leading-4 font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white">
-                    @forelse ($invoices as $invoice)
-                        <tr>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                <div class="text-sm leading-5 text-gray-900">
-                                    {{ $invoice->month }}/{{ $invoice->year }}
+                                    <!-- Ações -->
+                                    <div class="flex items-center space-x-2">
+                                        @if($invoice->status === 'open')
+                                            <form action="{{ route('credit-cards.invoices.close', [$creditCard, $invoice]) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" 
+                                                        class="inline-flex items-center p-1 border border-transparent rounded-full shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                                                        title="Fechar Fatura">
+                                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        @if($invoice->status === 'closed')
+                                            <form action="{{ route('credit-cards.invoices.pay', [$creditCard, $invoice]) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" 
+                                                        class="inline-flex items-center p-1 border border-transparent rounded-full shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                        title="Pagar Fatura">
+                                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
+
+                                        <a href="#" 
+                                           class="inline-flex items-center p-1 border border-gray-300 rounded-full shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                           title="Ver Detalhes">
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </a>
+                                    </div>
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                <div class="text-sm leading-5 text-gray-900">
-                                    {{ $invoice->closing_date->format('d/m/Y') }}
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                <div class="text-sm leading-5 text-gray-900">
-                                    {{ $invoice->due_date->format('d/m/Y') }}
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                <div class="text-sm leading-5 {{ $invoice->amount > 0 ? 'text-red-600' : 'text-gray-900' }}">
-                                    R$ {{ number_format($invoice->amount, 2, ',', '.') }}
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
-                                @php
-                                    $statusColors = [
-                                        'open' => 'bg-blue-100 text-blue-800',
-                                        'closed' => 'bg-yellow-100 text-yellow-800',
-                                        'paid' => 'bg-green-100 text-green-800',
-                                        'overdue' => 'bg-red-100 text-red-800',
-                                    ];
-                                @endphp
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusColors[$invoice->status] }}">
-                                    {{ App\Models\CreditCardInvoice::$statuses[$invoice->status] }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-sm leading-5 font-medium">
-                                @if ($invoice->status === 'open')
-                                    <form action="{{ route('credit-cards.close-invoice', $creditCard) }}" method="POST" class="inline">
-                                        @csrf
-                                        <button type="submit" class="text-blue-600 hover:text-blue-900 mr-3">
-                                            Fechar
-                                        </button>
-                                    </form>
-                                @endif
-                                @if ($invoice->status === 'closed')
-                                    <form action="{{ route('credit-cards.pay-invoice', $creditCard) }}" method="POST" class="inline">
-                                        @csrf
-                                        <button type="submit" class="text-green-600 hover:text-green-900 mr-3">
-                                            Pagar
-                                        </button>
-                                    </form>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-4 whitespace-no-wrap border-b border-gray-200 text-center text-gray-500">
-                                Nenhuma fatura encontrada.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                            </div>
+                        </div>
+                    </li>
+                @empty
+                    <li class="px-4 py-6 sm:px-6">
+                        <div class="text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhuma fatura encontrada</h3>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Este cartão ainda não possui faturas registradas.
+                            </p>
+                        </div>
+                    </li>
+                @endforelse
+            </ul>
+
+            <!-- Paginação -->
+            @if($invoices->hasPages())
+                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                    {{ $invoices->links() }}
+                </div>
+            @endif
         </div>
     </div>
+</div>
 @endsection 

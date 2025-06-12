@@ -19,11 +19,11 @@ use App\Http\Controllers\DashboardSettingController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ExpenseAnalyticsController;
 use App\Http\Controllers\PushSubscriptionController;
+use App\Http\Controllers\ConfirmPasswordController;
 use Illuminate\Support\Facades\Route;
 
 // Route::get('/', [LandingPageController::class, 'index'])->name('home');
 Route::get('/', function () {
-    //redireciona para o login
     return redirect()->route('login');
 });
 
@@ -69,10 +69,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('api-tokens', [ApiTokenController::class, 'index'])->name('api-tokens.index');
     });
 
-    // Credit Cards
-    Route::resource('credit-cards', CreditCardController::class);
-    Route::post('/credit-cards/invoices/{invoice}/close', [CreditCardController::class, 'closeInvoice'])->name('credit-cards.invoices.close');
-    Route::post('/credit-cards/invoices/{invoice}/pay', [CreditCardController::class, 'payInvoice'])->name('credit-cards.invoices.pay');
+    // Rotas de confirmação de senha
+    Route::get('/confirm-password', [ConfirmPasswordController::class, 'show'])
+        ->name('password.confirm');
+    Route::post('/confirm-password', [ConfirmPasswordController::class, 'confirm']);
+
+    // Rotas de cartões de crédito
+    Route::middleware(['password.confirm'])->group(function () {
+        Route::resource('credit-cards', CreditCardController::class);
+        Route::get('credit-cards/{creditCard}/invoices', [CreditCardController::class, 'showInvoices'])->name('credit-cards.invoices');
+        Route::post('credit-cards/{creditCard}/close-invoice', [CreditCardController::class, 'closeInvoice'])->name('credit-cards.close-invoice');
+        Route::post('credit-cards/{creditCard}/pay-invoice', [CreditCardController::class, 'payInvoice'])->name('credit-cards.pay-invoice');
+    });
 
     // Reports
     Route::prefix('reports')->name('reports.')->group(function () {
