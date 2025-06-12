@@ -9,12 +9,14 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::table('transactions', function (Blueprint $table) {
-            $table->date('due_date')->nullable()->after('date');
-        });
+        if (!Schema::hasColumn('transactions', 'due_date')) {
+            Schema::table('transactions', function (Blueprint $table) {
+                $table->date('due_date')->nullable()->after('date');
+            });
 
-        // Atualiza transações existentes
-        DB::statement("UPDATE transactions SET due_date = date");
+            // Atualiza transações existentes
+            DB::statement("UPDATE transactions SET due_date = date");
+        }
     }
 
     public function down()
